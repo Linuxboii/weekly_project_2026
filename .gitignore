@@ -1,0 +1,20 @@
+
+# Environment variables
+.env
+
+# Google Credentials
+credentials.json
+token.json
+
+# Temporary files
+.tmp/
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+
+# files
+directives/
+execution/
+node_modules/
