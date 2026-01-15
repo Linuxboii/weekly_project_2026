@@ -21,9 +21,17 @@ const mouse = {
     y: canvas.height / 2,
     targetX: canvas.width / 2,
     targetY: canvas.height / 2,
-    radius: 250,
+    radius: 200,
     isActive: false
 };
+
+// Cursor attachment state
+let attachmentStartTime = null;
+let isInCooldown = false;
+let cooldownStartTime = null;
+const ATTACHMENT_THRESHOLD = 5000; // 5 seconds to turn red
+const COOLDOWN_DURATION = 20000;    // 20 seconds cooldown
+const ATTACHED_RADIUS = 120;        // Nodes within this range are "attached"
 
 // Track mouse movement
 window.addEventListener('mousemove', (e) => {
@@ -34,6 +42,29 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseout', () => {
     mouse.isActive = false;
+    attachmentStartTime = null;
+});
+
+// Touch event support for mobile
+window.addEventListener('touchstart', (e) => {
+    if (e.touches.length > 0) {
+        mouse.targetX = e.touches[0].clientX;
+        mouse.targetY = e.touches[0].clientY;
+        mouse.isActive = true;
+    }
+}, { passive: true });
+
+window.addEventListener('touchmove', (e) => {
+    if (e.touches.length > 0) {
+        mouse.targetX = e.touches[0].clientX;
+        mouse.targetY = e.touches[0].clientY;
+        mouse.isActive = true;
+    }
+}, { passive: true });
+
+window.addEventListener('touchend', () => {
+    mouse.isActive = false;
+    attachmentStartTime = null;
 });
 
 // Theme detection
@@ -47,6 +78,15 @@ const observer = new MutationObserver((mutations) => {
     });
 });
 observer.observe(document.body, { attributes: true });
+
+// Helper function to interpolate colors
+function lerpColor(r1, g1, b1, r2, g2, b2, t) {
+    return {
+        r: Math.round(r1 + (r2 - r1) * t),
+        g: Math.round(g1 + (g2 - g1) * t),
+        b: Math.round(b1 + (b2 - b1) * t)
+    };
+}
 
 // Node class for DNA/Web structure
 class Node {
@@ -64,9 +104,13 @@ class Node {
 
         // Mouse interaction
         this.displacement = { x: 0, y: 0 };
+
+        // Attachment state
+        this.isAttached = false;
+        this.redIntensity = 0; // 0 to 1, how red it is
     }
 
-    update(time) {
+    update(time, heatLevel, isRepelling) {
         // Smooth mouse tracking
         mouse.x += (mouse.targetX - mouse.x) * 0.08;
         mouse.y += (mouse.targetY - mouse.y) * 0.08;
@@ -79,16 +123,36 @@ class Node {
         const dx = mouse.x - this.baseX;
         const dy = mouse.y - this.baseY;
         const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+
+        // Check if attached (within attachment radius)
+        this.isAttached = distance < ATTACHED_RADIUS && mouse.isActive && !isRepelling;
+
+        // Update red intensity based on heat level for attached nodes
+        if (this.isAttached) {
+            this.redIntensity = Math.min(1, this.redIntensity + (heatLevel - this.redIntensity) * 0.05);
+        } else {
+            this.redIntensity = Math.max(0, this.redIntensity - 0.02);
+        }
 
         // Mouse interaction - push/pull effect
-        if (distance < mouse.radius && mouse.isActive) {
-            const force = (mouse.radius - distance) / mouse.radius;
-            const angle = Math.atan2(dy, dx);
+        if (isRepelling && distance < mouse.radius * 1.5) {
+            // REPEL MODE: Push away from cursor
+            const force = (mouse.radius * 1.5 - distance) / (mouse.radius * 1.5);
+            const repelStrength = 80;
 
-            // Subtle attraction with wave-like ripple
-            const waveOffset = Math.sin(distance * 0.02 - time * 0.003) * 20;
-            this.displacement.x += (Math.cos(angle) * force * 40 + waveOffset * force * 0.3 - this.displacement.x) * 0.1;
-            this.displacement.y += (Math.sin(angle) * force * 40 + waveOffset * force * 0.3 - this.displacement.y) * 0.1;
+            this.displacement.x += (-Math.cos(angle) * force * repelStrength - this.displacement.x) * 0.08;
+            this.displacement.y += (-Math.sin(angle) * force * repelStrength - this.displacement.y) * 0.08;
+        } else if (distance < mouse.radius && mouse.isActive) {
+            // NORMAL MODE: Attract to cursor (attach)
+            const force = (mouse.radius - distance) / mouse.radius;
+
+            // Attraction toward cursor - creates "attached strings" effect
+            const attractStrength = this.isAttached ? 50 : 30;
+            const waveOffset = Math.sin(distance * 0.02 - time * 0.003) * 15;
+
+            this.displacement.x += (Math.cos(angle) * force * attractStrength + waveOffset * force * 0.2 - this.displacement.x) * 0.1;
+            this.displacement.y += (Math.sin(angle) * force * attractStrength + waveOffset * force * 0.2 - this.displacement.y) * 0.1;
         } else {
             // Return to base
             this.displacement.x *= 0.95;
@@ -100,16 +164,54 @@ class Node {
         this.y = this.baseY + floatY + this.displacement.y;
     }
 
+    // Burst away from cursor
+    burst() {
+        const dx = this.x - mouse.x;
+        const dy = this.y - mouse.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+
+        // Strong outward force
+        const burstForce = Math.max(50, 150 - distance * 0.5);
+        this.displacement.x += Math.cos(angle) * burstForce;
+        this.displacement.y += Math.sin(angle) * burstForce;
+    }
+
     draw() {
-        const alpha = isLightMode ? 0.6 : 0.8;
-        const color = isLightMode
-            ? `rgba(59, 130, 246, ${alpha})`
-            : `rgba(255, 255, 255, ${alpha})`;
+        let r, g, b, alpha;
+
+        if (this.redIntensity > 0) {
+            // Transition from normal color to red
+            if (isLightMode) {
+                // Light mode: blue (59, 130, 246) -> red (239, 68, 68)
+                const color = lerpColor(59, 130, 246, 239, 68, 68, this.redIntensity);
+                r = color.r; g = color.g; b = color.b;
+            } else {
+                // Dark mode: white (255, 255, 255) -> red (239, 68, 68)
+                const color = lerpColor(255, 255, 255, 239, 68, 68, this.redIntensity);
+                r = color.r; g = color.g; b = color.b;
+            }
+            alpha = 0.6 + this.redIntensity * 0.4;
+
+            // Add glow effect when turning red
+            if (this.redIntensity > 0.3) {
+                ctx.shadowBlur = 10 * this.redIntensity;
+                ctx.shadowColor = `rgba(239, 68, 68, ${this.redIntensity * 0.8})`;
+            }
+        } else {
+            alpha = isLightMode ? 0.6 : 0.8;
+            if (isLightMode) {
+                r = 59; g = 130; b = 246;
+            } else {
+                r = 255; g = 255; b = 255;
+            }
+        }
 
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
+        ctx.arc(this.x, this.y, this.size * (1 + this.redIntensity * 0.5), 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         ctx.fill();
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -122,7 +224,7 @@ class WebConnection {
         this.pulseOffset = Math.random() * Math.PI * 2;
     }
 
-    draw(time) {
+    draw(time, heatLevel, isRepelling) {
         const dx = this.nodeB.x - this.nodeA.x;
         const dy = this.nodeB.y - this.nodeA.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -152,27 +254,58 @@ class WebConnection {
             Math.pow(mouse.x - midX, 2) + Math.pow(mouse.y - midY, 2)
         );
 
-        if (mouseToMidDist < mouse.radius && mouse.isActive) {
+        // Check if this connection is "attached" to cursor
+        const bothAttached = this.nodeA.isAttached && this.nodeB.isAttached;
+        const eitherAttached = this.nodeA.isAttached || this.nodeB.isAttached;
+        const avgRedIntensity = (this.nodeA.redIntensity + this.nodeB.redIntensity) / 2;
+
+        if (mouseToMidDist < mouse.radius && mouse.isActive && !isRepelling) {
             const mouseInfluence = (1 - mouseToMidDist / mouse.radius);
-            opacity += mouseInfluence * 0.4;
+            opacity += mouseInfluence * 0.5;
         }
 
         // Subtle pulse
         const pulse = Math.sin(time * 0.003 + this.pulseOffset) * 0.1 + 0.9;
         opacity *= pulse;
 
+        // Boost opacity for attached connections
+        if (eitherAttached) {
+            opacity = Math.min(1, opacity + 0.3);
+        }
+
         // Draw curved connection
         ctx.beginPath();
         ctx.moveTo(this.nodeA.x, this.nodeA.y);
         ctx.quadraticCurveTo(ctrlX, ctrlY, this.nodeB.x, this.nodeB.y);
 
-        const color = isLightMode
-            ? `rgba(59, 130, 246, ${opacity})`
-            : `rgba(255, 255, 255, ${opacity})`;
+        // Color based on red intensity
+        let r, g, b;
+        if (avgRedIntensity > 0) {
+            if (isLightMode) {
+                const color = lerpColor(59, 130, 246, 239, 68, 68, avgRedIntensity);
+                r = color.r; g = color.g; b = color.b;
+            } else {
+                const color = lerpColor(255, 255, 255, 239, 68, 68, avgRedIntensity);
+                r = color.r; g = color.g; b = color.b;
+            }
 
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 0.8;
+            // Add glow to red connections
+            if (avgRedIntensity > 0.5) {
+                ctx.shadowBlur = 8 * avgRedIntensity;
+                ctx.shadowColor = `rgba(239, 68, 68, ${avgRedIntensity * 0.6})`;
+            }
+        } else {
+            if (isLightMode) {
+                r = 59; g = 130; b = 246;
+            } else {
+                r = 255; g = 255; b = 255;
+            }
+        }
+
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${opacity})`;
+        ctx.lineWidth = 0.8 + avgRedIntensity * 1.5;
         ctx.stroke();
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -184,8 +317,12 @@ function init() {
     nodes = [];
     connections = [];
 
+    // Detect mobile for optimized node density
+    const isMobile = window.innerWidth < 768;
+
     // Create grid-based nodes with some randomness for organic feel
-    const spacing = 60;
+    // Use larger spacing on mobile for better performance
+    const spacing = isMobile ? 80 : 60;
     const cols = Math.ceil(canvas.width / spacing) + 2;
     const rows = Math.ceil(canvas.height / spacing) + 2;
 
@@ -211,6 +348,25 @@ function init() {
             }
         }
     }
+
+    // Reset states on init
+    attachmentStartTime = null;
+    isInCooldown = false;
+    cooldownStartTime = null;
+}
+
+// Trigger burst effect
+function triggerBurst() {
+    nodes.forEach(node => {
+        if (node.isAttached || node.redIntensity > 0.3) {
+            node.burst();
+        }
+    });
+
+    // Start cooldown
+    isInCooldown = true;
+    cooldownStartTime = Date.now();
+    attachmentStartTime = null;
 }
 
 // Animation loop
@@ -223,25 +379,76 @@ function animate() {
 
     animationTime += 16; // Approximate frame time
 
+    // Check cooldown status
+    if (isInCooldown) {
+        const cooldownElapsed = Date.now() - cooldownStartTime;
+        if (cooldownElapsed >= COOLDOWN_DURATION) {
+            isInCooldown = false;
+            cooldownStartTime = null;
+        }
+    }
+
+    // Count attached nodes
+    let attachedCount = 0;
+    nodes.forEach(node => {
+        const dx = mouse.x - node.baseX;
+        const dy = mouse.y - node.baseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < ATTACHED_RADIUS && mouse.isActive && !isInCooldown) {
+            attachedCount++;
+        }
+    });
+
+    // Track attachment time
+    let heatLevel = 0;
+    if (attachedCount > 0 && mouse.isActive && !isInCooldown) {
+        if (attachmentStartTime === null) {
+            attachmentStartTime = Date.now();
+        }
+
+        const attachedDuration = Date.now() - attachmentStartTime;
+        heatLevel = Math.min(1, attachedDuration / ATTACHMENT_THRESHOLD);
+
+        // Trigger burst when fully heated
+        if (attachedDuration >= ATTACHMENT_THRESHOLD) {
+            triggerBurst();
+        }
+    } else if (!mouse.isActive || isInCooldown) {
+        attachmentStartTime = null;
+    }
+
     // Update nodes
-    nodes.forEach(node => node.update(animationTime));
+    nodes.forEach(node => node.update(animationTime, heatLevel, isInCooldown));
 
     // Draw connections first (behind nodes)
-    connections.forEach(conn => conn.draw(animationTime));
+    connections.forEach(conn => conn.draw(animationTime, heatLevel, isInCooldown));
 
     // Draw nodes
     nodes.forEach(node => node.draw());
 
-    // Draw mouse influence area (subtle glow)
+    // Draw mouse influence area
     if (mouse.isActive) {
         const gradient = ctx.createRadialGradient(
             mouse.x, mouse.y, 0,
             mouse.x, mouse.y, mouse.radius
         );
 
-        const glowColor = isLightMode
-            ? 'rgba(59, 130, 246, 0.03)'
-            : 'rgba(255, 255, 255, 0.02)';
+        let glowColor;
+        if (isInCooldown) {
+            // Red glow during cooldown (repel mode)
+            const cooldownProgress = 1 - ((Date.now() - cooldownStartTime) / COOLDOWN_DURATION);
+            glowColor = `rgba(239, 68, 68, ${0.05 * cooldownProgress})`;
+        } else if (heatLevel > 0) {
+            // Transition glow from normal to red based on heat
+            const r = Math.round(59 + (239 - 59) * heatLevel);
+            const g = Math.round(130 + (68 - 130) * heatLevel);
+            const b = Math.round(246 + (68 - 246) * heatLevel);
+            glowColor = `rgba(${r}, ${g}, ${b}, ${0.03 + heatLevel * 0.05})`;
+        } else {
+            glowColor = isLightMode
+                ? 'rgba(59, 130, 246, 0.03)'
+                : 'rgba(255, 255, 255, 0.02)';
+        }
 
         gradient.addColorStop(0, glowColor);
         gradient.addColorStop(1, 'transparent');
@@ -253,20 +460,7 @@ function animate() {
 
 // Export functions for script.js compatibility
 window.disperse = function () {
-    // Ripple effect from center
-    const centerX = mouse.x || canvas.width / 2;
-    const centerY = mouse.y || canvas.height / 2;
-
-    nodes.forEach(node => {
-        const dx = node.x - centerX;
-        const dy = node.y - centerY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const angle = Math.atan2(dy, dx);
-        const force = Math.max(0, 300 - dist) / 300 * 100;
-
-        node.displacement.x += Math.cos(angle) * force;
-        node.displacement.y += Math.sin(angle) * force;
-    });
+    triggerBurst();
 };
 
 window.spawnParticlesFromRect = function (rect) {
