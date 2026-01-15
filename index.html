@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>Powered by Avlok Ai</h1>
+            <button id="theme-toggle" class="theme-btn">☀️ Light Mode</button>
+        </header>
+
+        <div class="upload-area" id="drop-zone">
+            <input type="file" id="file-input" hidden>
+            <div class="icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+            </div>
+            <p class="hint">Drag & drop or click to browse</p>
+            <p class="sub-hint">No PDF, DOCX, XLSX, or Video</p>
+        </div>
+
+        <div id="status-container" class="hidden">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p id="status-text"></p>
+        </div>
+    </div>
+    <canvas id="bg-canvas"></canvas>
+
+    <script src="script.js"></script>
+    <script src="background.js"></script>
+</body>
+
+</html>

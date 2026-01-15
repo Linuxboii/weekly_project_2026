@@ -1,0 +1,289 @@
+:root {
+    --bg-color: #121212;
+    --surface-color: #1E1E1E;
+    --text-primary: #E0E0E0;
+    --text-secondary: #A0A0A0;
+    --accent: #FFFFFF;
+    --error: #CF6679;
+    --success: #03DAC6;
+    --border: #333333;
+    --hover: #2C2C2C;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* Light Mode (formerly Ocean) */
+[data-theme='light'] {
+    --bg-color: #E0F2FE;
+    /* Light blue ocean tint */
+    --surface-color: #FFFFFF;
+    --text-primary: #1F2937;
+    --text-secondary: #6B7280;
+    --accent: #3B82F6;
+    --success: #10B981;
+    --border: #E5E7EB;
+    --hover: #F9FAFB;
+    --glow: rgba(59, 130, 246, 0.15);
+}
+
+/* Dark Mode (formerly Spider) */
+[data-theme='dark'] {
+    --bg-color: #000000;
+    --surface-color: #121212;
+    --text-primary: #E5E5E5;
+    --text-secondary: #A0A0A0;
+    --accent: #E5E5E5;
+    --success: #03DAC6;
+    --border: #333333;
+    --hover: #262626;
+    --glow: rgba(255, 255, 255, 0.05);
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+    transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+#bg-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    opacity: 0.15;
+    pointer-events: none;
+}
+
+.container {
+    width: 100%;
+    max-width: 480px;
+}
+
+header {
+    margin-bottom: 40px;
+    text-align: center;
+}
+
+.theme-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+}
+
+.theme-btn:hover {
+    background: var(--hover);
+    transform: translateY(-1px);
+}
+
+h1 {
+    font-weight: 300;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.upload-area {
+    background-color: var(--surface-color);
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    padding: 60px 40px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Accentuation */
+    box-shadow: 0 10px 30px -10px var(--glow);
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+    border-color: var(--accent);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -12px var(--glow);
+    background-color: var(--hover);
+}
+
+.icon {
+    margin-bottom: 16px;
+    color: var(--accent);
+    opacity: 0.8;
+}
+
+.hint {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.sub-hint {
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+/* Status & Progress */
+#status-container {
+    margin-top: 24px;
+}
+
+.progress-bar {
+    height: 4px;
+    background-color: var(--surface-color);
+    /* Very subtle track, almost invisible */
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+/* Light Mode loading bar */
+/* Light Mode loading bar (Liquid Shimmer) */
+[data-theme='light'] .progress-fill {
+    background: linear-gradient(110deg,
+            var(--accent) 30%,
+            #93C5FD 50%,
+            var(--accent) 70%);
+    background-size: 200% 100%;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    animation: liquidFlow 2s linear infinite;
+}
+
+@keyframes liquidFlow {
+    0% {
+        background-position: 100% 0;
+    }
+
+    100% {
+        background-position: -100% 0;
+    }
+}
+
+/* Dark Mode loading bar */
+/* Dark Mode loading bar (Music Wave) */
+[data-theme='dark'] .progress-fill {
+    background-color: transparent;
+    /* Equalizer effect using gradients */
+    background-image: linear-gradient(90deg,
+            transparent 50%,
+            var(--accent) 50%);
+    background-size: 10px 100%;
+    /* Spacing of bars */
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    opacity: 0.8;
+    animation: musicWave 0.5s infinite alternate;
+}
+
+/* Dissolve state for transition to background */
+/* Dissolve state (Stretch & Thin) */
+.progress-fill.dissolve {
+    opacity: 0;
+    transform: scaleX(1.5) scaleY(0.1);
+    /* Stretch horizontal, thin vertical */
+    transition: opacity 0.6s ease-out, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes waveFlow {
+    0% {
+        background-position: 100% 0;
+    }
+
+    100% {
+        background-position: -100% 0;
+    }
+}
+
+@keyframes webCrawl {
+    0% {
+        background-position: 0 0, 0 0, 0 0;
+    }
+
+    100% {
+        background-position: 20px 20px, 20px 20px, 40px 40px;
+    }
+}
+
+@keyframes musicWave {
+    0% {
+        /* Low amplitude */
+        clip-path: polygon(0% 40%, 10% 30%, 20% 40%, 30% 30%, 40% 40%, 50% 30%, 60% 40%, 70% 30%, 80% 40%, 90% 30%, 100% 40%, 100% 100%, 0% 100%);
+    }
+
+    100% {
+        /* High amplitude */
+        clip-path: polygon(0% 10%, 10% 0%, 20% 10%, 30% 0%, 40% 10%, 50% 0%, 60% 10%, 70% 0%, 80% 10%, 90% 0%, 100% 10%, 100% 100%, 0% 100%);
+    }
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes waveFlow {
+    0% {
+        background-position: 100% 0;
+    }
+
+    100% {
+        background-position: -100% 0;
+    }
+}
+
+@keyframes webCrawl {
+    0% {
+        background-position: 0 0, 0 0, 0 0;
+    }
+
+    100% {
+        background-position: 20px 20px, 20px 20px, 40px 40px;
+    }
+}
+
+#status-text {
+    text-align: center;
+    font-size: 13px;
+}
+
+.hidden {
+    display: none;
+}
+
+.error {
+    color: var(--error);
+}
+
+.success {
+    color: var(--success);
+}
