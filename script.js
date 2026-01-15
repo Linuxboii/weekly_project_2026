@@ -156,8 +156,17 @@ function uploadFile(file) {
         .catch(error => {
             clearInterval(progressInterval);
             progressFill.style.width = '0%';
+            progressFill.classList.remove('dissolve');
+            progressFill.style.opacity = '1';
+            progressFill.style.transform = 'scale(1)';
             showStatus(`Error: ${error.message}`, 'error');
             if (window.disperse) window.disperse();
+
+            // Hide status container after 3 seconds (longer than success to let user read error)
+            setTimeout(() => {
+                statusContainer.classList.add('hidden');
+                progressFill.style.width = '0%';
+            }, 3000);
         });
 }
 
