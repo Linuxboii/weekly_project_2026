@@ -4,7 +4,8 @@ const statusContainer = document.getElementById('status-container');
 const progressFill = document.getElementById('progress-fill');
 const statusText = document.getElementById('status-text');
 
-const WEBHOOK_URL = '/upload';
+// Use n8n webhook directly (no server proxy needed for static hosting)
+const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook-test/image';
 
 const BLOCKED_TYPES = [
     'application/pdf',
