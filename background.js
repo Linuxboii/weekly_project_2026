@@ -33,8 +33,28 @@ const ATTACHMENT_THRESHOLD = 5000; // 5 seconds to turn red
 const COOLDOWN_DURATION = 20000;    // 20 seconds cooldown
 const ATTACHED_RADIUS = 120;        // Nodes within this range are "attached"
 
+// Cursor stillness tracking
+let lastMouseMoveTime = 0;
+let lastMouseX = 0;
+let lastMouseY = 0;
+let isMouseStill = false;
+const STILLNESS_THRESHOLD = 300; // 300ms without movement = still
+const MOVEMENT_THRESHOLD = 5;    // 5px movement breaks stillness
+
 // Track mouse movement
 window.addEventListener('mousemove', (e) => {
+    const dx = e.clientX - lastMouseX;
+    const dy = e.clientY - lastMouseY;
+    const moved = Math.sqrt(dx * dx + dy * dy);
+
+    // Only reset stillness if mouse actually moved significantly
+    if (moved > MOVEMENT_THRESHOLD) {
+        lastMouseMoveTime = Date.now();
+        isMouseStill = false;
+    }
+
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
     mouse.targetX = e.clientX;
     mouse.targetY = e.clientY;
     mouse.isActive = true;
@@ -42,6 +62,7 @@ window.addEventListener('mousemove', (e) => {
 
 window.addEventListener('mouseout', () => {
     mouse.isActive = false;
+    isMouseStill = false;
     attachmentStartTime = null;
 });
 
@@ -125,8 +146,8 @@ class Node {
         const distance = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
 
-        // Check if attached (within attachment radius)
-        this.isAttached = distance < ATTACHED_RADIUS && mouse.isActive && !isRepelling;
+        // Check if attached (within attachment radius and cursor is still)
+        this.isAttached = distance < ATTACHED_RADIUS && mouse.isActive && isMouseStill && !isRepelling;
 
         // Update red intensity based on heat level for attached nodes
         if (this.isAttached) {
@@ -388,20 +409,25 @@ function animate() {
         }
     }
 
-    // Count attached nodes
+    // Check if mouse is still (hasn't moved for STILLNESS_THRESHOLD)
+    if (mouse.isActive && Date.now() - lastMouseMoveTime > STILLNESS_THRESHOLD) {
+        isMouseStill = true;
+    }
+
+    // Count attached nodes (only when cursor is still)
     let attachedCount = 0;
     nodes.forEach(node => {
         const dx = mouse.x - node.baseX;
         const dy = mouse.y - node.baseY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < ATTACHED_RADIUS && mouse.isActive && !isInCooldown) {
+        if (distance < ATTACHED_RADIUS && mouse.isActive && isMouseStill && !isInCooldown) {
             attachedCount++;
         }
     });
 
-    // Track attachment time
+    // Track attachment time (only when mouse is still)
     let heatLevel = 0;
-    if (attachedCount > 0 && mouse.isActive && !isInCooldown) {
+    if (attachedCount > 0 && mouse.isActive && isMouseStill && !isInCooldown) {
         if (attachmentStartTime === null) {
             attachmentStartTime = Date.now();
         }
@@ -413,8 +439,11 @@ function animate() {
         if (attachedDuration >= ATTACHMENT_THRESHOLD) {
             triggerBurst();
         }
-    } else if (!mouse.isActive || isInCooldown) {
-        attachmentStartTime = null;
+    } else if (!mouse.isActive || isInCooldown || !isMouseStill) {
+        // Reset timer if mouse moves, leaves, or in cooldown
+        if (!isMouseStill && attachmentStartTime !== null) {
+            attachmentStartTime = null;
+        }
     }
 
     // Update nodes
