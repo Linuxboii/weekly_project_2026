@@ -3,7 +3,7 @@
 // To generate: Open browser console and run:
 // crypto.subtle.digest('SHA-256', new TextEncoder().encode('yourpassword')).then(h => console.log(Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('')))
 
-const PASSWORD_HASH = 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f'; // Default: "assword123"
+const PASSWORD_HASH = 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f'; // Default: "password123"
 
 document.addEventListener('DOMContentLoaded', function () {
     const passwordGate = document.getElementById('password-gate');
