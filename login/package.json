@@ -1,0 +1,21 @@
+{
+    "name": "avlok-login",
+    "version": "1.0.0",
+    "description": "Avlok AI Login Dashboard - Project selection portal",
+    "main": "index.html",
+    "scripts": {
+        "dev": "serve -l 3001",
+        "start": "serve -l 3001",
+        "build": "echo 'No build step required - static site'"
+    },
+    "keywords": [
+        "avlok",
+        "login",
+        "dashboard"
+    ],
+    "author": "Avlok AI",
+    "license": "MIT",
+    "devDependencies": {
+        "serve": "^14.2.0"
+    }
+}
