@@ -89,16 +89,16 @@ window.addEventListener('touchend', () => {
 });
 
 // Theme detection
-let isLightMode = document.body.getAttribute('data-theme') === 'light';
+let isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
 
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         if (mutation.type === "attributes" && mutation.attributeName === "data-theme") {
-            isLightMode = document.body.getAttribute('data-theme') === 'light';
+            isLightMode = document.documentElement.getAttribute('data-theme') === 'light';
         }
     });
 });
-observer.observe(document.body, { attributes: true });
+observer.observe(document.documentElement, { attributes: true });
 
 // Helper function to interpolate colors
 function lerpColor(r1, g1, b1, r2, g2, b2, t) {

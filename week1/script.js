@@ -16,21 +16,24 @@ const BLOCKED_TYPES = [
 
 const themeToggle = document.getElementById('theme-toggle');
 
-// Theme Management
-// Theme Management
-let currentTheme = 'light';
-document.body.setAttribute('data-theme', currentTheme);
+// Theme Management - sync with auth.js theme
+let currentTheme = localStorage.getItem('theme') || document.documentElement.getAttribute('data-theme') || 'dark';
+document.documentElement.setAttribute('data-theme', currentTheme);
 
+// Update button text based on current theme
 if (themeToggle) {
+    themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
+
     themeToggle.addEventListener('click', () => {
         currentTheme = currentTheme === 'light' ? 'dark' : 'light';
-        document.body.setAttribute('data-theme', currentTheme);
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        localStorage.setItem('theme', currentTheme);
 
         // Update button text
         if (currentTheme === 'light') {
-            themeToggle.textContent = '☀️ Light Mode';
-        } else {
             themeToggle.textContent = '🌙 Dark Mode';
+        } else {
+            themeToggle.textContent = '☀️ Light Mode';
         }
     });
 }
