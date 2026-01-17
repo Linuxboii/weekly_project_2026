@@ -16,10 +16,51 @@ const API_BASE_URL = 'https://api.avlokai.com';
 const AUTH_TOKEN_KEY = 'auth_token';
 const THEME_KEY = 'theme';
 
-// ABSOLUTE URLS (Configurable for Dev)
-// PROD: 'https://week2.avlokai.com'
-// DEV:  Week2 runs on Vite at port 5173 (root)
-const DASHBOARD_URL = 'https://week2.avlokai.com';
+// ============================================
+// DYNAMIC URL DETECTION (Production-Grade)
+// ============================================
+function getDashboardUrl() {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+
+    // 1. Custom Domain: login.avlokai.com → week2.avlokai.com
+    if (hostname === 'login.avlokai.com') {
+        return 'https://week2.avlokai.com';
+    }
+
+    // 2. Vercel Preview/Production: Detect Vercel deployment
+    //    Vercel URLs: project-name.vercel.app OR project-git-branch-team.vercel.app
+    if (hostname.endsWith('.vercel.app')) {
+        // Try to find corresponding week2 deployment
+        // Pattern: login-xxx.vercel.app → week2-xxx.vercel.app
+        // Or: weekly-project-2026-login.vercel.app → weekly-project-2026-week2.vercel.app
+        const week2Hostname = hostname
+            .replace(/^login-/, 'week2-')           // login-xxx → week2-xxx
+            .replace(/-login\./, '-week2.')         // xxx-login.vercel → xxx-week2.vercel
+            .replace(/-login-/, '-week2-');         // xxx-login-yyy → xxx-week2-yyy
+
+        // If no substitution happened, the naming might be different
+        // In that case, use relative path as fallback
+        if (week2Hostname === hostname) {
+            console.warn('[Login] Could not infer week2 URL from Vercel hostname');
+            return '../week2/';  // Fallback to relative (works if same root deploy)
+        }
+
+        return `${protocol}//${week2Hostname}`;
+    }
+
+    // 3. Local Development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:5173';  // Vite default port for week2
+    }
+
+    // 4. Fallback: Same origin, relative path
+    console.warn('[Login] Unknown deployment environment, using relative URL');
+    return '../week2/';
+}
+
+const DASHBOARD_URL = getDashboardUrl();
+console.log('[Login] Dashboard URL resolved to:', DASHBOARD_URL);
 
 // ============================================
 // HANDLE LOGOUT/RELOGIN IMMEDIATELY (before DOM)
