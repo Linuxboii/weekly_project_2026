@@ -7,6 +7,7 @@ const previewContainer = document.getElementById('preview-container');
 const previewImage = document.getElementById('preview-image');
 const uploadBtn = document.getElementById('upload-btn');
 const clearPreviewBtn = document.getElementById('clear-preview');
+const imageDescription = document.getElementById('image-description');
 
 // Use n8n webhook directly (no server proxy needed for static hosting)
 const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook-test/image';
@@ -94,6 +95,36 @@ function clearPreview() {
     previewImage.src = '';
     previewContainer.classList.add('hidden');
     dropZone.classList.remove('hidden');
+    // Also clear description
+    if (imageDescription) {
+        imageDescription.classList.add('hidden');
+        imageDescription.innerHTML = '';
+    }
+}
+
+/**
+ * Typewriter effect with shadow reveal - displays text one character at a time
+ * Each character fades in from blur/shadow
+ * @param {string} text - The text to display
+ * @param {number} duration - Total duration in milliseconds (default 2500ms)
+ */
+function typewriterEffect(text, duration = 2500) {
+    if (!imageDescription) return;
+
+    imageDescription.innerHTML = '';
+    imageDescription.classList.remove('hidden');
+
+    const chars = text.split('');
+    const delay = duration / chars.length;
+
+    chars.forEach((char, index) => {
+        setTimeout(() => {
+            const span = document.createElement('span');
+            span.className = 'description-char';
+            span.textContent = char === ' ' ? '\u00A0' : char;
+            imageDescription.appendChild(span);
+        }, index * delay);
+    });
 }
 
 function resetUI() {
@@ -182,29 +213,37 @@ function uploadFile(file) {
         .then(response => {
             clearInterval(progressInterval);
             if (response.ok) {
-                progressFill.style.width = '100%';
-
-                // 4. DISPERSE PARTICLES & DISSOLVE
-                setTimeout(() => {
-                    progressFill.classList.add('dissolve');
-
-                    if (window.disperse) window.disperse();
-
-                    showStatus('Upload complete.', 'success');
-
-                    setTimeout(() => {
-                        statusContainer.classList.add('hidden');
-                        progressFill.style.width = '0%';
-                        progressFill.classList.remove('dissolve');
-                        progressFill.style.opacity = '1';
-                        progressFill.style.transform = 'scale(1)';
-                        // Clear preview and show drop zone again
-                        clearPreview();
-                    }, 2000);
-                }, 500);
+                return response.json();
             } else {
                 return response.text().then(text => { throw new Error(text || response.statusText); });
             }
+        })
+        .then(data => {
+            progressFill.style.width = '100%';
+
+            // DISPERSE PARTICLES & DISSOLVE
+            setTimeout(() => {
+                progressFill.classList.add('dissolve');
+
+                if (window.disperse) window.disperse();
+
+                showStatus('Upload complete.', 'success');
+
+                // Show description with typewriter effect
+                if (data && data.description) {
+                    typewriterEffect(data.description, 2500);
+                }
+
+                // Hide status bar after brief delay, but keep preview and description visible
+                setTimeout(() => {
+                    statusContainer.classList.add('hidden');
+                    progressFill.style.width = '0%';
+                    progressFill.classList.remove('dissolve');
+                    progressFill.style.opacity = '1';
+                    progressFill.style.transform = 'scale(1)';
+                    // Description stays visible until user clears preview
+                }, 2000);
+            }, 500);
         })
         .catch(error => {
             clearInterval(progressInterval);
