@@ -15,7 +15,7 @@
 // LOGOUT (ALWAYS AVAILABLE GLOBALLY)
 // ============================================
 // DEV: Login runs on port 3001 (serve), PROD: https://login.avlokai.com
-const __WEEK2_LOGIN_URL__ = 'http://localhost:3001';
+const __WEEK2_LOGIN_URL__ = 'https://login.avlokai.com';
 
 window.logout = function () {
     console.log('[Week2] Logout triggered');
