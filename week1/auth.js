@@ -84,6 +84,31 @@ function updateThemeButton() {
 // AUTH GUARD CORE
 // ============================================
 
+/**
+ * Check for token passed via URL (cross-subdomain handoff)
+ * Stores it in localStorage and cleans the URL
+ */
+function checkUrlTokenHandoff() {
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('auth_token');
+
+    if (urlToken) {
+        // Store the token
+        localStorage.setItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY, urlToken);
+        console.log('[AuthGuard] Token received via URL handoff');
+
+        // Clean the URL (remove token parameter for security)
+        params.delete('auth_token');
+        const newUrl = params.toString()
+            ? `${window.location.pathname}?${params.toString()}`
+            : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+
+        return urlToken;
+    }
+    return null;
+}
+
 function redirectToLogin() {
     // SAFETY: Never redirect if already on login page
     if (window.location.hostname === 'login.avlokai.com') {
@@ -127,6 +152,9 @@ async function verifyToken(token) {
 async function initProtectedPage() {
     // Initialize theme first
     initTheme();
+
+    // Check for token handoff from login page (cross-subdomain)
+    checkUrlTokenHandoff();
 
     const token = localStorage.getItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
 
