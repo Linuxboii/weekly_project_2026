@@ -1,0 +1,17 @@
+{
+    "name": "week2-login-refactor",
+    "version": "1.0.0",
+    "description": "Refactored login system for Week 2",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "start": "vite"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "vite": "^6.0.0"
+    }
+}
