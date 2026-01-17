@@ -1,24 +1,63 @@
 /**
- * Authentication Module for Avlok AI
+ * Authentication Module for Avlok AI Login Page
  * Handles login flow with JWT token storage
+ * 
+ * This file is for the LOGIN PAGE (https://login.avlokai.com)
+ * For protected projects, use auth-guard.js instead.
  */
 
+// ============================================
+// CONFIGURATION (DO NOT MODIFY)
+// ============================================
 const API_BASE_URL = 'https://api.avlokai.com';
 const AUTH_TOKEN_KEY = 'auth_token';
+const LOGIN_PAGE_URL = 'https://login.avlokai.com/';
 const THEME_KEY = 'theme';
 
-// DOM Elements
+// ============================================
+// DOM ELEMENTS
+// ============================================
 const loginScreen = document.getElementById('login-screen');
 const mainContainer = document.getElementById('dashboard');
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email-input');
 const passwordInput = document.getElementById('password-input');
 const loginBtn = document.getElementById('login-btn');
-const btnText = loginBtn.querySelector('.btn-text');
-const btnLoader = loginBtn.querySelector('.btn-loader');
+const btnText = loginBtn?.querySelector('.btn-text');
+const btnLoader = loginBtn?.querySelector('.btn-loader');
 const errorMessage = document.getElementById('error-message');
 const loginThemeToggle = document.getElementById('login-theme-toggle');
 const passwordToggleBtn = document.getElementById('toggle-password');
+
+// ============================================
+// URL REDIRECT HANDLING
+// ============================================
+
+/**
+ * Get redirect URL from query parameters
+ * @returns {string|null} The redirect URL or null if not present
+ */
+function getRedirectUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('redirect');
+}
+
+/**
+ * Redirect to the original project or dashboard
+ * @param {string|null} redirectUrl - URL to redirect to
+ */
+function redirectToProject(redirectUrl) {
+    if (redirectUrl) {
+        window.location.href = redirectUrl;
+    } else {
+        // No redirect param - show dashboard
+        showMainApp();
+    }
+}
+
+// ============================================
+// THEME MANAGEMENT
+// ============================================
 
 /**
  * Initialize theme from localStorage or system preference
@@ -28,7 +67,6 @@ function initTheme() {
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
     } else {
-        // Check system preference
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     }
@@ -43,7 +81,6 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem(THEME_KEY, newTheme);
 
-    // Update main app theme toggle button text if it exists
     const mainThemeToggle = document.getElementById('theme-toggle');
     if (mainThemeToggle) {
         mainThemeToggle.textContent = newTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
@@ -73,17 +110,30 @@ if (passwordToggleBtn) {
     passwordToggleBtn.addEventListener('click', togglePasswordVisibility);
 }
 
+// ============================================
+// AUTH CHECK (ON PAGE LOAD)
+// ============================================
+
 /**
  * Check if user is already authenticated
+ * Per contract: If token exists → immediately redirect
  */
 function checkAuth() {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const redirectUrl = getRedirectUrl();
+
     if (token) {
-        showMainApp();
+        // Token exists - redirect immediately
+        redirectToProject(redirectUrl);
     } else {
+        // No token - show login form
         showLoginScreen();
     }
 }
+
+// ============================================
+// UI STATE MANAGEMENT
+// ============================================
 
 /**
  * Show login screen, hide main app
@@ -91,11 +141,11 @@ function checkAuth() {
 function showLoginScreen() {
     loginScreen.classList.remove('hidden');
     mainContainer.classList.add('hidden');
-    document.title = 'Avlok Ai - Login';
+    document.title = 'Avlok AI - Login';
 }
 
 /**
- * Show main app, hide login screen
+ * Show main app (dashboard), hide login screen
  */
 function showMainApp() {
     loginScreen.classList.add('hidden');
@@ -107,6 +157,10 @@ function showMainApp() {
         renderProjects();
     }
 }
+
+// ============================================
+// FORM VALIDATION
+// ============================================
 
 /**
  * Validate email format
@@ -132,14 +186,17 @@ function validateInputs(email, password) {
     return { valid: true };
 }
 
+// ============================================
+// ERROR HANDLING
+// ============================================
+
 /**
- * Show error message
+ * Show error message with shake animation
  */
 function showError(message) {
     errorMessage.textContent = message;
     errorMessage.classList.remove('hidden');
 
-    // Add shake animation
     errorMessage.classList.add('shake');
     setTimeout(() => {
         errorMessage.classList.remove('shake');
@@ -168,8 +225,17 @@ function setLoading(isLoading) {
     }
 }
 
+// ============================================
+// LOGIN HANDLER (EXACT CONTRACT)
+// ============================================
+
 /**
  * Handle login form submission
+ * Per contract:
+ * - Disable submit button
+ * - Send credentials to /auth/login
+ * - If successful: Store token, redirect to original project
+ * - If failure: Show friendly error message, re-enable button
  */
 async function handleLogin(e) {
     e.preventDefault();
@@ -188,61 +254,103 @@ async function handleLogin(e) {
     setLoading(true);
 
     try {
+        // LOGIN REQUEST (DO NOT CHANGE - per contract)
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                email,
-                password
-            })
+            body: JSON.stringify({ email, password })
         });
 
         const data = await response.json();
 
         if (response.ok) {
-            // Success - store token and show main app
+            // Success - store token exactly as per contract
             localStorage.setItem(AUTH_TOKEN_KEY, data.token);
 
             // Clear form
             emailInput.value = '';
             passwordInput.value = '';
 
-            // Transition to main app
-            showMainApp();
+            // Redirect to original project or show dashboard
+            const redirectUrl = getRedirectUrl();
+            redirectToProject(redirectUrl);
         } else {
-            // Handle specific error cases
-            if (response.status === 401) {
-                showError('Invalid email or password. Please try again.');
-            } else if (response.status === 400) {
-                showError('Please fill in all required fields.');
-            } else {
-                showError('Something went wrong. Please try again later.');
+            // Handle specific error cases per contract
+            switch (response.status) {
+                case 400:
+                    showError('Please fill in all required fields.');
+                    break;
+                case 401:
+                    showError('Invalid email or password. Please try again.');
+                    break;
+                case 403:
+                    showError('Your account has been disabled. Please contact support.');
+                    break;
+                default:
+                    showError('Something went wrong. Please try again later.');
             }
         }
     } catch (error) {
         // Network error or server unreachable
-        showError('Unable to connect. Please check your internet connection.');
+        console.error('[Auth] Login request failed:', error);
+        console.error('[Auth] Attempted URL:', `${API_BASE_URL}/auth/login`);
+
+        // Check if it's a CORS error or network error
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            showError('Unable to connect to server. This may be a CORS issue or the server is unreachable.');
+        } else {
+            showError('Unable to connect. Please check your internet connection.');
+        }
     } finally {
         setLoading(false);
     }
 }
 
-/**
- * Handle logout
- */
-function handleLogout() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    showLoginScreen();
+// ============================================
+// LOGOUT (GLOBAL - PER CONTRACT)
+// ============================================
 
-    // Clear any sensitive data
-    emailInput.value = '';
-    passwordInput.value = '';
+/**
+ * Handle logout - affects all projects globally
+ * Per contract: Remove token, redirect to login page
+ */
+function logout() {
+    console.log('[Auth] Logging out...');
+    // Clear all auth data
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    sessionStorage.removeItem('auth_session');
+
+    // If already on login page, reload to show login form
+    if (window.location.hostname === 'login.avlokai.com' ||
+        window.location.hostname === 'localhost' ||
+        window.location.pathname.includes('/login')) {
+        window.location.reload();
+    } else {
+        window.location.href = LOGIN_PAGE_URL;
+    }
 }
 
-// Event Listeners
-loginForm.addEventListener('submit', handleLogin);
+/**
+ * Legacy handleLogout for backward compatibility
+ */
+function handleLogout() {
+    logout();
+}
+
+// Make logout globally available
+window.logout = logout;
+window.handleLogout = handleLogout;
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
+// Login form submission
+if (loginForm) {
+    loginForm.addEventListener('submit', handleLogin);
+}
 
 // Logout button (will be added after DOM is ready for main app)
 document.addEventListener('DOMContentLoaded', () => {
@@ -253,20 +361,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Focus management for accessibility
-emailInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        passwordInput.focus();
-    }
-});
+if (emailInput) {
+    emailInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            passwordInput.focus();
+        }
+    });
 
-// Clear error when user starts typing
-emailInput.addEventListener('input', hideError);
-passwordInput.addEventListener('input', hideError);
+    // Clear error when user starts typing
+    emailInput.addEventListener('input', hideError);
+}
+
+if (passwordInput) {
+    passwordInput.addEventListener('input', hideError);
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
 
 // Initialize auth check after all scripts are loaded
 // This ensures app.js renderProjects function is available
 window.addEventListener('load', () => {
     checkAuth();
 });
-
