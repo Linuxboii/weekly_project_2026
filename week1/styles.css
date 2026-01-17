@@ -727,6 +727,74 @@ p {
     background: rgba(0, 0, 0, 0.5);
 }
 
+/* Audio Preview Styles */
+.audio-preview-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 32px;
+    background: #000000;
+    border-radius: 12px;
+    min-width: 280px;
+}
+
+.audio-preview-wrapper.hidden {
+    display: none;
+}
+
+.audio-icon {
+    color: var(--accent);
+    opacity: 0.8;
+    animation: musicPulse 2s ease-in-out infinite;
+}
+
+@keyframes musicPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+.preview-audio {
+    width: 100%;
+    max-width: 300px;
+    height: 40px;
+    border-radius: 20px;
+    outline: none;
+}
+
+/* Dark mode audio player */
+[data-theme='dark'] .audio-preview-wrapper {
+    background: #000000;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .preview-audio {
+    filter: invert(1);
+}
+
+/* Light mode audio player */
+[data-theme='light'] .audio-preview-wrapper {
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='light'] .audio-icon {
+    color: #60a5fa;
+}
+
+[data-theme='light'] .preview-audio {
+    filter: invert(1) hue-rotate(180deg);
+}
+
 /* Image Description - Typewriter Effect */
 .image-description {
     margin-top: 16px;

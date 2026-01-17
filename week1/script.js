@@ -5,6 +5,8 @@ const progressFill = document.getElementById('progress-fill');
 const statusText = document.getElementById('status-text');
 const previewContainer = document.getElementById('preview-container');
 const previewImage = document.getElementById('preview-image');
+const previewAudio = document.getElementById('preview-audio');
+const audioPreviewWrapper = document.getElementById('audio-preview-wrapper');
 const uploadBtn = document.getElementById('upload-btn');
 const clearPreviewBtn = document.getElementById('clear-preview');
 const imageDescription = document.getElementById('image-description');
@@ -92,9 +94,23 @@ if (clearPreviewBtn) {
 
 function clearPreview() {
     pendingFile = null;
+
+    // Clear image preview
     previewImage.src = '';
+    previewImage.classList.add('hidden');
+
+    // Clear audio preview
+    if (previewAudio) {
+        previewAudio.pause();
+        previewAudio.src = '';
+    }
+    if (audioPreviewWrapper) {
+        audioPreviewWrapper.classList.add('hidden');
+    }
+
     previewContainer.classList.add('hidden');
     dropZone.classList.remove('hidden');
+
     // Also clear description
     if (imageDescription) {
         imageDescription.classList.add('hidden');
@@ -141,21 +157,45 @@ function resetUI() {
 function handleFile(file) {
     if (!validateFile(file)) return;
 
-    // Check if it's an image for preview
+    // Check file type for appropriate preview
     if (file.type.startsWith('image/')) {
-        showPreview(file);
+        showImagePreview(file);
+    } else if (file.type.startsWith('audio/')) {
+        showAudioPreview(file);
     } else {
-        // For non-image files, upload directly
+        // For other files, upload directly
         uploadFile(file);
     }
 }
 
-function showPreview(file) {
+function showImagePreview(file) {
     pendingFile = file;
+
+    // Hide audio, show image
+    if (audioPreviewWrapper) audioPreviewWrapper.classList.add('hidden');
+    previewImage.classList.remove('hidden');
 
     const reader = new FileReader();
     reader.onload = (e) => {
         previewImage.src = e.target.result;
+        previewContainer.classList.remove('hidden');
+        dropZone.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function showAudioPreview(file) {
+    pendingFile = file;
+
+    // Hide image, show audio
+    previewImage.classList.add('hidden');
+    if (audioPreviewWrapper) audioPreviewWrapper.classList.remove('hidden');
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        if (previewAudio) {
+            previewAudio.src = e.target.result;
+        }
         previewContainer.classList.remove('hidden');
         dropZone.classList.add('hidden');
     };
@@ -229,9 +269,24 @@ function uploadFile(file) {
 
                 showStatus('Upload complete.', 'success');
 
-                // Show description with typewriter effect
+                // Build display text from response
+                let displayText = '';
+
                 if (data && data.description) {
-                    typewriterEffect(data.description, 2500);
+                    displayText = data.description;
+                }
+
+                if (data && data.Text) {
+                    // If we already have description, add a separator
+                    if (displayText) {
+                        displayText += '\n\n';
+                    }
+                    displayText += 'Transcribed Text: ' + data.Text;
+                }
+
+                // Show with typewriter effect
+                if (displayText) {
+                    typewriterEffect(displayText, 2500);
                 }
 
                 // Hide status bar after brief delay, but keep preview and description visible
