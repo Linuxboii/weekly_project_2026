@@ -592,7 +592,7 @@ body {
     display: none !important;
 }
 
-/* ==================== SUN PROJECTS MODAL ==================== */
+/* ==================== SUN PROJECTS MODAL (MINIMALISTIC) ==================== */
 /* Hide dashboard main content when using sun navigation */
 .dashboard.sun-mode .dashboard-main,
 .dashboard.sun-mode .dashboard-footer {
@@ -611,26 +611,27 @@ body {
     width: 100%;
 }
 
-/* Projects Modal (triggered by sun click) */
+/* Projects Modal - Minimalistic Dark */
 #sun-projects-modal {
     position: fixed;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%) scale(0.9);
-    background: rgba(15, 15, 25, 0.98);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 24px;
-    padding: 32px;
+    transform: translate(-50%, -50%) scale(0.95);
+    background: rgba(10, 10, 12, 0.6);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 24px;
     z-index: 10000;
-    max-width: 500px;
+    max-width: 360px;
     width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
     opacity: 0;
     pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+    transition: all 0.25s ease;
 }
 
 #sun-projects-modal.active {
@@ -643,67 +644,101 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 #sun-projects-modal .modal-title {
-    font-size: 24px;
-    font-weight: 700;
-    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 #sun-projects-modal .modal-close {
-    background: rgba(255, 255, 255, 0.1);
+    background: transparent;
     border: none;
-    color: #fff;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 20px;
-    transition: all 0.2s;
+    font-size: 18px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #sun-projects-modal .modal-close:hover {
-    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 #sun-projects-modal .modal-projects {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 4px;
+}
+
+/* Custom scrollbar for projects list */
+#sun-projects-modal .modal-projects::-webkit-scrollbar {
+    width: 4px;
+}
+
+#sun-projects-modal .modal-projects::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#sun-projects-modal .modal-projects::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+#sun-projects-modal .modal-projects::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 #sun-projects-modal .modal-project-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    gap: 12px;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-decoration: none;
     color: inherit;
 }
 
 #sun-projects-modal .modal-project-card:hover {
-    background: rgba(99, 102, 241, 0.15);
-    border-color: rgba(99, 102, 241, 0.3);
-    transform: translateX(4px);
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
 }
 
 #sun-projects-modal .modal-project-icon {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: rgba(255, 255, 255, 0.6);
     flex-shrink: 0;
+}
+
+#sun-projects-modal .modal-project-icon svg {
+    width: 18px;
+    height: 18px;
 }
 
 #sun-projects-modal .modal-project-info {
@@ -711,26 +746,26 @@ body {
 }
 
 #sun-projects-modal .modal-project-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 2px;
 }
 
 #sun-projects-modal .modal-project-desc {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
 }
 
-/* Modal backdrop */
+/* Modal backdrop - Darker */
 #sun-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 9999;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease;
 }
 
 #sun-modal-backdrop.active {
