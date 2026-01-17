@@ -84,7 +84,29 @@
                     <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
             </button>
-            <p id="image-description" class="image-description hidden"></p>
+
+            <!-- Prompt Toggle (Image only) -->
+            <div id="prompt-section" class="prompt-section hidden">
+                <label class="prompt-toggle">
+                    <input type="checkbox" id="prompt-toggle-checkbox">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label">Send Prompt</span>
+                </label>
+                <div id="prompt-input-wrapper" class="prompt-input-wrapper hidden">
+                    <textarea id="prompt-input" class="prompt-input" placeholder="Enter your prompt..."
+                        rows="1"></textarea>
+                </div>
+            </div>
+
+            <div id="response-container" class="response-container hidden">
+                <button id="copy-response-btn" class="copy-response-btn" title="Copy to clipboard">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+                <div id="image-description" class="image-description"></div>
+            </div>
         </div>
 
         <div id="status-container" class="hidden">

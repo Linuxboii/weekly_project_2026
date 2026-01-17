@@ -795,25 +795,236 @@ p {
     filter: invert(1) hue-rotate(180deg);
 }
 
-/* Image Description - Typewriter Effect */
-.image-description {
+/* Prompt Section Styles */
+.prompt-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     margin-top: 16px;
-    padding: 16px 20px;
-    font-size: 15px;
-    line-height: 1.6;
-    text-align: center;
+}
+
+.prompt-section.hidden {
+    display: none;
+}
+
+/* Toggle Switch */
+.prompt-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.prompt-toggle input {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.prompt-toggle input:checked+.toggle-slider {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.prompt-toggle input:checked+.toggle-slider::before {
+    transform: translateX(20px);
+    background: var(--bg-color);
+}
+
+.toggle-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.prompt-toggle input:checked~.toggle-label {
+    color: var(--text-primary);
+}
+
+/* Prompt Input */
+.prompt-input-wrapper {
+    width: 100%;
+    max-width: 400px;
+    animation: fadeInUp 0.3s ease;
+}
+
+.prompt-input-wrapper.hidden {
+    display: none;
+}
+
+.prompt-input {
+    width: 100%;
+    min-height: 44px;
+    max-height: 200px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
     color: rgba(255, 255, 255, 0.95);
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    resize: none;
+    overflow-y: auto;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+/* Hide scrollbar for Chrome/Safari */
+.prompt-input::-webkit-scrollbar {
+    display: none;
+}
+
+.prompt-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.prompt-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+
+/* Light mode prompt styles */
+[data-theme='light'] .toggle-slider {
+    background: rgba(0, 0, 0, 0.1);
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme='light'] .toggle-slider::before {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='light'] .prompt-toggle input:checked+.toggle-slider {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+[data-theme='light'] .prompt-toggle input:checked+.toggle-slider::before {
+    background: white;
+}
+
+[data-theme='light'] .prompt-input {
+    background: #0a0a0a;
+    color: white;
+}
+
+[data-theme='light'] .prompt-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme='light'] .prompt-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+/* Response Container with Copy Button */
+.response-container {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    margin-top: 16px;
     background: #000000;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
-    max-width: 100%;
     opacity: 0;
     transform: translateY(20px);
     animation: flyInDescription 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.image-description.hidden {
+.response-container.hidden {
     display: none;
+}
+
+/* Copy Button */
+.copy-response-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.copy-response-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.copy-response-btn.copied {
+    background: var(--success);
+    color: white;
+}
+
+/* Image Description Text */
+.image-description {
+    padding: 20px;
+    padding-right: 48px;
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: left;
+    color: rgba(255, 255, 255, 0.95);
+    max-height: 300px;
+    overflow-y: auto;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Custom scrollbar for response */
+.image-description::-webkit-scrollbar {
+    width: 6px;
+}
+
+.image-description::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.image-description::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.image-description::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 @keyframes flyInDescription {
@@ -828,8 +1039,8 @@ p {
     }
 }
 
-/* Dark mode description - AMOLED dark */
-[data-theme='dark'] .image-description {
+/* Dark mode response container */
+[data-theme='dark'] .response-container {
     background: #000000;
     border-color: rgba(255, 255, 255, 0.06);
     box-shadow:
@@ -837,11 +1048,15 @@ p {
         inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-/* Light mode description - Also dark for contrast */
-[data-theme='light'] .image-description {
+/* Light mode response container */
+[data-theme='light'] .response-container {
     background: #0a0a0a;
     border-color: rgba(255, 255, 255, 0.1);
     box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='light'] .copy-response-btn {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 /* Per-character shadow reveal animation */

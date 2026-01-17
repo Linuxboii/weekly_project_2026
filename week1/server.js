@@ -8,7 +8,7 @@ const fs = require('fs');
 
 const app = express();
 const PORT = 3000;
-const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook-test/image';
+const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook/image';
 
 // Enable CORS and serve static files
 app.use(cors());

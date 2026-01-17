@@ -9,10 +9,19 @@ const previewAudio = document.getElementById('preview-audio');
 const audioPreviewWrapper = document.getElementById('audio-preview-wrapper');
 const uploadBtn = document.getElementById('upload-btn');
 const clearPreviewBtn = document.getElementById('clear-preview');
+const responseContainer = document.getElementById('response-container');
 const imageDescription = document.getElementById('image-description');
+const copyResponseBtn = document.getElementById('copy-response-btn');
+const promptSection = document.getElementById('prompt-section');
+const promptToggleCheckbox = document.getElementById('prompt-toggle-checkbox');
+const promptInputWrapper = document.getElementById('prompt-input-wrapper');
+const promptInput = document.getElementById('prompt-input');
+
+// Store full response text for copy functionality
+let currentResponseText = '';
 
 // Use n8n webhook directly (no server proxy needed for static hosting)
-const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook-test/image';
+const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook/image';
 
 const BLOCKED_TYPES = [
     'application/pdf',
@@ -92,6 +101,33 @@ if (clearPreviewBtn) {
     });
 }
 
+// Prompt toggle checkbox handler
+if (promptToggleCheckbox) {
+    promptToggleCheckbox.addEventListener('change', () => {
+        if (promptToggleCheckbox.checked) {
+            promptInputWrapper.classList.remove('hidden');
+            promptInput.focus();
+        } else {
+            promptInputWrapper.classList.add('hidden');
+            promptInput.value = '';
+            // Reset height when cleared
+            if (promptInput) promptInput.style.height = 'auto';
+        }
+    });
+}
+
+// Auto-resize textarea as user types
+function autoResizeTextarea(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+}
+
+if (promptInput) {
+    promptInput.addEventListener('input', () => {
+        autoResizeTextarea(promptInput);
+    });
+}
+
 function clearPreview() {
     pendingFile = null;
 
@@ -108,14 +144,49 @@ function clearPreview() {
         audioPreviewWrapper.classList.add('hidden');
     }
 
+    // Clear prompt section
+    if (promptSection) {
+        promptSection.classList.add('hidden');
+    }
+    if (promptToggleCheckbox) {
+        promptToggleCheckbox.checked = false;
+    }
+    if (promptInputWrapper) {
+        promptInputWrapper.classList.add('hidden');
+    }
+    if (promptInput) {
+        promptInput.value = '';
+        promptInput.style.height = 'auto';
+    }
+
     previewContainer.classList.add('hidden');
     dropZone.classList.remove('hidden');
 
-    // Also clear description
+    // Clear response/description
+    if (responseContainer) {
+        responseContainer.classList.add('hidden');
+    }
     if (imageDescription) {
-        imageDescription.classList.add('hidden');
         imageDescription.innerHTML = '';
     }
+    currentResponseText = '';
+}
+
+// Copy button handler
+if (copyResponseBtn) {
+    copyResponseBtn.addEventListener('click', async () => {
+        if (currentResponseText) {
+            try {
+                await navigator.clipboard.writeText(currentResponseText);
+                copyResponseBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyResponseBtn.classList.remove('copied');
+                }, 1500);
+            } catch (err) {
+                console.error('Failed to copy:', err);
+            }
+        }
+    });
 }
 
 /**
@@ -125,10 +196,13 @@ function clearPreview() {
  * @param {number} duration - Total duration in milliseconds (default 2500ms)
  */
 function typewriterEffect(text, duration = 2500) {
-    if (!imageDescription) return;
+    if (!imageDescription || !responseContainer) return;
+
+    // Store for copy functionality
+    currentResponseText = text;
 
     imageDescription.innerHTML = '';
-    imageDescription.classList.remove('hidden');
+    responseContainer.classList.remove('hidden');
 
     const chars = text.split('');
     const delay = duration / chars.length;
@@ -174,6 +248,9 @@ function showImagePreview(file) {
     // Hide audio, show image
     if (audioPreviewWrapper) audioPreviewWrapper.classList.add('hidden');
     previewImage.classList.remove('hidden');
+
+    // Show prompt section for images
+    if (promptSection) promptSection.classList.remove('hidden');
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -246,8 +323,16 @@ function uploadFile(file) {
     const formData = new FormData();
     formData.append('file', file);
 
+    // Build headers - include prompt if toggle is ON for images
+    const headers = {};
+    if (promptToggleCheckbox && promptToggleCheckbox.checked && promptInput && promptInput.value.trim()) {
+        // URL-encode to ensure only ASCII chars in header (HTTP header limitation)
+        headers['X-Prompt'] = encodeURIComponent(JSON.stringify({ prompt: promptInput.value }));
+    }
+
     fetch(WEBHOOK_URL, {
         method: 'POST',
+        headers: headers,
         body: formData
     })
         .then(response => {
