@@ -1,24 +1,40 @@
 /**
- * Authentication Module for Avlok AI
- * Handles login flow with JWT token storage
+ * Auth Guard for Week 1 Project (File Uploader)
+ * 
+ * This file handles authentication verification for the Week 1 project.
+ * It follows the Avlok AI authentication contract exactly.
+ * 
+ * The login form has been REMOVED from this project.
+ * Users MUST be redirected from https://login.avlokai.com for authentication.
  */
 
-const API_BASE_URL = 'https://api.avlokai.com';
-const AUTH_TOKEN_KEY = 'auth_token';
+// ============================================
+// PROJECT METADATA (AUTHORITATIVE)
+// ============================================
+const PROJECT_ID = 'week1';
+const PROJECT_REQUIRES_AUTH = true;
+
+// ============================================
+// CONFIGURATION (DO NOT MODIFY)
+// ============================================
+const AUTH_GUARD_CONFIG = {
+    API_BASE_URL: 'https://api.avlokai.com',
+    AUTH_TOKEN_KEY: 'auth_token',
+    AUTH_SESSION_KEY: 'auth_session', // Tracks valid login session
+    LOGIN_PAGE_URL: 'https://login.avlokai.com/',
+    ALLOWED_REFERRERS: ['login.avlokai.com', 'localhost'], // Add localhost for development
+};
+
 const THEME_KEY = 'theme';
 
-// DOM Elements
-const loginScreen = document.getElementById('login-screen');
+// ============================================
+// DOM ELEMENTS
+// ============================================
 const mainContainer = document.getElementById('main-container');
-const loginForm = document.getElementById('login-form');
-const emailInput = document.getElementById('email-input');
-const passwordInput = document.getElementById('password-input');
-const loginBtn = document.getElementById('login-btn');
-const btnText = loginBtn.querySelector('.btn-text');
-const btnLoader = loginBtn.querySelector('.btn-loader');
-const errorMessage = document.getElementById('error-message');
-const loginThemeToggle = document.getElementById('login-theme-toggle');
-const passwordToggleBtn = document.getElementById('toggle-password');
+
+// ============================================
+// THEME MANAGEMENT
+// ============================================
 
 /**
  * Initialize theme from localStorage or system preference
@@ -28,10 +44,10 @@ function initTheme() {
     if (savedTheme) {
         document.documentElement.setAttribute('data-theme', savedTheme);
     } else {
-        // Check system preference
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     }
+    updateThemeButton();
 }
 
 /**
@@ -42,222 +58,254 @@ function toggleTheme() {
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem(THEME_KEY, newTheme);
-
-    // Update main app theme toggle button text if it exists
-    const mainThemeToggle = document.getElementById('theme-toggle');
-    if (mainThemeToggle) {
-        mainThemeToggle.textContent = newTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
-    }
+    updateThemeButton();
 }
 
 /**
- * Toggle password visibility
+ * Update theme button text
  */
-function togglePasswordVisibility() {
-    const isPassword = passwordInput.type === 'password';
-    passwordInput.type = isPassword ? 'text' : 'password';
-    passwordToggleBtn.classList.toggle('password-visible', isPassword);
-    passwordToggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+function updateThemeButton() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+    if (themeToggle) {
+        themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
+    }
 }
 
 // Initialize theme on page load
 initTheme();
 
-// Theme toggle event listener
-if (loginThemeToggle) {
-    loginThemeToggle.addEventListener('click', toggleTheme);
-}
+// ============================================
+// AUTH GUARD CORE
+// ============================================
 
-// Password visibility toggle event listener
-if (passwordToggleBtn) {
-    passwordToggleBtn.addEventListener('click', togglePasswordVisibility);
+/**
+ * Redirect to login page with current URL as redirect param
+ */
+function redirectToLogin() {
+    const currentUrl = window.location.href;
+    window.location.href = `${AUTH_GUARD_CONFIG.LOGIN_PAGE_URL}?redirect=${encodeURIComponent(currentUrl)}`;
 }
 
 /**
- * Check if user is already authenticated
+ * Check if the user came from an allowed referrer (login page)
+ * This prevents direct access to the project without going through login
  */
-function checkAuth() {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (token) {
-        showMainApp();
-    } else {
-        showLoginScreen();
+function isValidReferrer() {
+    const referrer = document.referrer;
+
+    // If there's a valid auth session, allow access
+    if (sessionStorage.getItem(AUTH_GUARD_CONFIG.AUTH_SESSION_KEY) === 'valid') {
+        return true;
     }
+
+    // Check if referrer is from an allowed domain
+    if (referrer) {
+        try {
+            const referrerUrl = new URL(referrer);
+            const isAllowed = AUTH_GUARD_CONFIG.ALLOWED_REFERRERS.some(
+                allowed => referrerUrl.hostname === allowed || referrerUrl.hostname.endsWith('.' + allowed)
+            );
+
+            if (isAllowed) {
+                // Mark this session as valid (for page refreshes)
+                sessionStorage.setItem(AUTH_GUARD_CONFIG.AUTH_SESSION_KEY, 'valid');
+                return true;
+            }
+        } catch (e) {
+            // Invalid referrer URL
+        }
+    }
+
+    return false;
 }
 
 /**
- * Show login screen, hide main app
+ * Verify access with the backend
+ * Per contract: POST /auth/verify with Authorization and X-Project-Id headers
+ * 
+ * @param {string} token - JWT token from localStorage
+ * @returns {Promise<Object>} Verification response
  */
-function showLoginScreen() {
-    loginScreen.classList.remove('hidden');
-    mainContainer.classList.add('hidden');
-    document.title = 'Avlok Ai - Login';
+async function verifyAccess(token) {
+    const response = await fetch(`${AUTH_GUARD_CONFIG.API_BASE_URL}/auth/verify`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'X-Project-Id': PROJECT_ID
+        }
+    });
+
+    const data = await response.json();
+    return data;
 }
 
 /**
- * Show main app, hide login screen
+ * Handle access denied
+ * Per contract: Alert, remove token, redirect to login
+ * 
+ * @param {string} reason - Reason for denial
+ */
+function handleAccessDenied(reason) {
+    let message = 'Access denied';
+
+    switch (reason) {
+        case 'role_not_allowed':
+            message = 'You do not have permission to access this project.';
+            break;
+        case 'project_not_found':
+            message = 'This project could not be found.';
+            break;
+        case 'verification_failed':
+            message = 'Unable to verify your access. Please log in again.';
+            break;
+        case 'direct_access':
+            message = 'Please log in to access this project.';
+            break;
+        default:
+            message = 'Access denied. Please log in again.';
+    }
+
+    alert(message);
+    localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_SESSION_KEY);
+    redirectToLogin();
+}
+
+/**
+ * Show the main application UI
  */
 function showMainApp() {
-    loginScreen.classList.add('hidden');
-    mainContainer.classList.remove('hidden');
-    document.title = 'Avlok Ai';
-}
-
-/**
- * Validate email format
- */
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-/**
- * Validate form inputs
- */
-function validateInputs(email, password) {
-    if (!email || !password) {
-        return { valid: false, message: 'Please fill in all fields.' };
+    // Hide auth loading spinner
+    const authLoading = document.getElementById('auth-loading');
+    if (authLoading) {
+        authLoading.classList.add('hidden');
     }
-    if (!isValidEmail(email)) {
-        return { valid: false, message: 'Please enter a valid email address.' };
+
+    if (mainContainer) {
+        mainContainer.classList.remove('hidden');
     }
-    if (password.length < 8) {
-        return { valid: false, message: 'Password must be at least 8 characters.' };
-    }
-    return { valid: true };
+    document.title = 'Avlok AI - Week 1';
 }
 
 /**
- * Show error message
+ * Initialize the auth guard
+ * Per contract:
+ * - Check if accessed from valid referrer (login page)
+ * - If no token and PROJECT_REQUIRES_AUTH → redirect to login
+ * - If token exists → call /auth/verify
+ * - Only render UI after verification succeeds
  */
-function showError(message) {
-    errorMessage.textContent = message;
-    errorMessage.classList.remove('hidden');
+async function initAuthGuard() {
+    // Check for token
+    const token = localStorage.getItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
 
-    // Add shake animation
-    errorMessage.classList.add('shake');
-    setTimeout(() => {
-        errorMessage.classList.remove('shake');
-    }, 500);
-}
-
-/**
- * Hide error message
- */
-function hideError() {
-    errorMessage.classList.add('hidden');
-    errorMessage.textContent = '';
-}
-
-/**
- * Set loading state on button
- */
-function setLoading(isLoading) {
-    loginBtn.disabled = isLoading;
-    if (isLoading) {
-        btnText.classList.add('hidden');
-        btnLoader.classList.remove('hidden');
-    } else {
-        btnText.classList.remove('hidden');
-        btnLoader.classList.add('hidden');
-    }
-}
-
-/**
- * Handle login form submission
- */
-async function handleLogin(e) {
-    e.preventDefault();
-
-    const email = emailInput.value.trim();
-    const password = passwordInput.value;
-
-    // Client-side validation
-    const validation = validateInputs(email, password);
-    if (!validation.valid) {
-        showError(validation.message);
+    // No token → redirect to login
+    if (!token && PROJECT_REQUIRES_AUTH) {
+        console.log('[AuthGuard] No token - redirecting to login');
+        sessionStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_SESSION_KEY);
+        redirectToLogin();
         return;
     }
 
-    hideError();
-    setLoading(true);
+    // PUBLIC PROJECTS: No verification needed
+    if (!PROJECT_REQUIRES_AUTH) {
+        console.log('[AuthGuard] Public project - skipping verification');
+        showMainApp();
+        return;
+    }
 
+    // Check if user came from login page (prevent direct access)
+    if (!isValidReferrer()) {
+        console.log('[AuthGuard] Direct access detected - redirecting to login');
+        handleAccessDenied('direct_access');
+        return;
+    }
+
+    // PROTECTED PROJECTS: Verify access before showing UI
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                email,
-                password
-            })
-        });
+        console.log('[AuthGuard] Verifying access...');
+        const result = await verifyAccess(token);
 
-        const data = await response.json();
-
-        if (response.ok) {
-            // Success - store token and show main app
-            localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-
-            // Clear form
-            emailInput.value = '';
-            passwordInput.value = '';
-
-            // Transition to main app
+        if (result.valid) {
+            console.log('[AuthGuard] Access verified for user:', result.userId);
             showMainApp();
         } else {
-            // Handle specific error cases
-            if (response.status === 401) {
-                showError('Invalid email or password. Please try again.');
-            } else if (response.status === 400) {
-                showError('Please fill in all required fields.');
-            } else {
-                showError('Something went wrong. Please try again later.');
-            }
+            console.log('[AuthGuard] Access denied:', result.reason);
+            handleAccessDenied(result.reason);
         }
     } catch (error) {
-        // Network error or server unreachable
-        showError('Unable to connect. Please check your internet connection.');
-    } finally {
-        setLoading(false);
+        console.error('[AuthGuard] Verification error:', error);
+        handleAccessDenied('verification_failed');
     }
 }
+
+// ============================================
+// LOGOUT (GLOBAL)
+// ============================================
 
 /**
- * Handle logout
+ * Logout - affects all projects globally
+ * Per contract: Remove token, redirect to login (which will show login form)
  */
-function handleLogout() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    showLoginScreen();
-
-    // Clear any sensitive data
-    emailInput.value = '';
-    passwordInput.value = '';
+function logout() {
+    console.log('[AuthGuard] Logging out...');
+    // Clear all auth data
+    localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
+    sessionStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_SESSION_KEY);
+    // Redirect to login page (token is removed, so login form will show)
+    window.location.href = AUTH_GUARD_CONFIG.LOGIN_PAGE_URL;
 }
 
-// Event Listeners
-loginForm.addEventListener('submit', handleLogin);
+// Legacy alias
+function handleLogout() {
+    logout();
+}
 
-// Logout button (will be added after DOM is ready for main app)
-document.addEventListener('DOMContentLoaded', () => {
+// Make logout globally available
+window.logout = logout;
+window.handleLogout = handleLogout;
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+
+// Attach event listeners immediately when script loads
+(function attachEventListeners() {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupEventListeners);
+    } else {
+        setupEventListeners();
+    }
+})();
+
+function setupEventListeners() {
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    // Logout button - use onclick attribute as backup
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
+        logoutBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            logout();
+        });
+        // Also set onclick directly for reliability
+        logoutBtn.onclick = function (e) {
+            e.preventDefault();
+            logout();
+            return false;
+        };
     }
-});
+}
 
-// Focus management for accessibility
-emailInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        passwordInput.focus();
-    }
-});
+// ============================================
+// INITIALIZATION
+// ============================================
 
-// Clear error when user starts typing
-emailInput.addEventListener('input', hideError);
-passwordInput.addEventListener('input', hideError);
-
-// Initialize auth check on page load
-checkAuth();
+// Initialize auth guard on page load
+initAuthGuard();

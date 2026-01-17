@@ -10,6 +10,47 @@
     --hover: #2C2C2C;
 }
 
+/* ==================== AUTH LOADING STYLES ==================== */
+
+.auth-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    background: var(--bg-color);
+}
+
+.auth-loading-content {
+    text-align: center;
+}
+
+.auth-loading-spinner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    color: var(--accent);
+}
+
+.auth-loading-spinner .spinner {
+    animation: spin 1s linear infinite;
+}
+
+.auth-loading-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* Hide auth loading when main content is visible */
+.auth-loading.hidden {
+    display: none;
+}
+
 /* ==================== LOGIN SCREEN STYLES ==================== */
 
 .login-screen {
