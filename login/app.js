@@ -23,6 +23,18 @@ const PROJECTS = [
 const projectsGrid = document.getElementById('projects-grid');
 
 /**
+ * Build project URL with auth token for cross-subdomain handoff
+ */
+function getProjectUrlWithToken(baseUrl) {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}auth_token=${encodeURIComponent(token)}`;
+    }
+    return baseUrl;
+}
+
+/**
  * Render project cards to the grid
  * This function is called by auth.js after successful login
  */
@@ -30,7 +42,7 @@ function renderProjects() {
     if (!projectsGrid) return;
 
     projectsGrid.innerHTML = PROJECTS.map(project => `
-        <a href="${project.url}" class="project-card" target="_blank" rel="noopener noreferrer">
+        <a href="${getProjectUrlWithToken(project.url)}" class="project-card" target="_blank" rel="noopener noreferrer">
             <div class="project-card-content">
                 <div class="project-icon">
                     ${project.icon}
