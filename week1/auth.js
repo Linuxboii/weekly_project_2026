@@ -15,19 +15,6 @@
  */
 
 // ============================================
-// LOGIN PAGE DETECTION (SAFETY - REQUIRED)
-// ============================================
-const IS_LOGIN_PAGE = window.location.hostname === 'login.avlokai.com';
-
-if (IS_LOGIN_PAGE) {
-    console.log('[AuthGuard] Login page detected — auth guard disabled');
-    // Exit immediately - do not run auth guard on login page
-} else {
-    // Run auth guard only on protected pages
-    initProtectedPage();
-}
-
-// ============================================
 // PROJECT METADATA (PROTECTED PAGES ONLY)
 // ============================================
 const PROJECT_ID = 'week1';
@@ -48,6 +35,19 @@ const THEME_KEY = 'theme';
 // DOM ELEMENTS
 // ============================================
 const mainContainer = document.getElementById('main-container');
+
+// ============================================
+// LOGIN PAGE DETECTION (SAFETY - REQUIRED)
+// ============================================
+const IS_LOGIN_PAGE = window.location.hostname === 'login.avlokai.com';
+
+if (IS_LOGIN_PAGE) {
+    console.log('[AuthGuard] Login page detected — auth guard disabled');
+    // Exit immediately - do not run auth guard on login page
+} else {
+    // Run auth guard only on protected pages
+    initProtectedPage();
+}
 
 // ============================================
 // THEME MANAGEMENT
