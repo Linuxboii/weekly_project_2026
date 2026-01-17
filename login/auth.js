@@ -228,7 +228,9 @@ async function handleLogin(e) {
             // Redirect to original project or show dashboard
             const redirectUrl = getRedirectUrl();
             if (redirectUrl) {
-                window.location.href = redirectUrl;
+                // Pass token via URL for cross-subdomain handoff
+                const separator = redirectUrl.includes('?') ? '&' : '?';
+                window.location.href = `${redirectUrl}${separator}auth_token=${encodeURIComponent(data.token)}`;
             } else {
                 showDashboard();
             }
