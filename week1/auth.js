@@ -137,15 +137,24 @@ async function verifyToken(token) {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
-                'X-Project-Id': PROJECT_ID
+                'X-Project-Id': PROJECT_ID,
+                'Content-Type': 'application/json'
             }
         });
+
+        // Handle non-OK responses explicitly
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            return { valid: false, reason: data.reason || 'invalid_token' };
+        }
+
         return await response.json();
     } catch (error) {
         console.error('[AuthGuard] Verification request failed:', error);
-        // Return valid on network error to prevent redirect loops
-        // The app will handle unauthorized access on actual API calls
-        return { valid: true, error: 'network_error' };
+        // CRITICAL (spec section 6): On network/CORS error, do NOT redirect
+        // Allow UI to load - backend APIs will enforce access on actual calls
+        console.warn('[AuthGuard] Network error - allowing UI to load (backend will enforce)');
+        return { valid: true, network_error: true };
     }
 }
 
