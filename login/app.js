@@ -19,6 +19,14 @@ const PROJECTS = [
     },
 ];
 
+// Expose projects list globally for solar system modal
+window.projectsList = PROJECTS.map(p => ({
+    id: p.id,
+    name: p.title,
+    description: p.description,
+    url: p.url
+}));
+
 // DOM Elements
 const projectsGrid = document.getElementById('projects-grid');
 

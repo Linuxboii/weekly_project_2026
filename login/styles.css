@@ -332,19 +332,21 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 20px 40px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(10, 10, 11, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    border-bottom: none;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     position: sticky;
     top: 0;
     z-index: 50;
+    pointer-events: none;
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 12px;
+    pointer-events: auto;
 }
 
 .logo-small {
@@ -368,6 +370,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
+    pointer-events: auto;
 }
 
 .reset-btn {
@@ -587,6 +590,152 @@ body {
 /* ==================== UTILITIES ==================== */
 .hidden {
     display: none !important;
+}
+
+/* ==================== SUN PROJECTS MODAL ==================== */
+/* Hide dashboard main content when using sun navigation */
+.dashboard.sun-mode .dashboard-main,
+.dashboard.sun-mode .dashboard-footer {
+    display: none;
+}
+
+.dashboard.sun-mode {
+    min-height: 100vh;
+    position: relative;
+}
+
+.dashboard.sun-mode .dashboard-header {
+    background: transparent;
+    border-bottom: none;
+    position: absolute;
+    width: 100%;
+}
+
+/* Projects Modal (triggered by sun click) */
+#sun-projects-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(15, 15, 25, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 32px;
+    z-index: 10000;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+#sun-projects-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+#sun-projects-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+#sun-projects-modal .modal-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+}
+
+#sun-projects-modal .modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.2s;
+}
+
+#sun-projects-modal .modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#sun-projects-modal .modal-projects {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#sun-projects-modal .modal-project-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+}
+
+#sun-projects-modal .modal-project-card:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: translateX(4px);
+}
+
+#sun-projects-modal .modal-project-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+#sun-projects-modal .modal-project-info {
+    flex: 1;
+}
+
+#sun-projects-modal .modal-project-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+#sun-projects-modal .modal-project-desc {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Modal backdrop */
+#sun-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#sun-modal-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* ==================== RESPONSIVE ==================== */
