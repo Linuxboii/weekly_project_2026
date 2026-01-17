@@ -3,6 +3,10 @@ const fileInput = document.getElementById('file-input');
 const statusContainer = document.getElementById('status-container');
 const progressFill = document.getElementById('progress-fill');
 const statusText = document.getElementById('status-text');
+const previewContainer = document.getElementById('preview-container');
+const previewImage = document.getElementById('preview-image');
+const uploadBtn = document.getElementById('upload-btn');
+const clearPreviewBtn = document.getElementById('clear-preview');
 
 // Use n8n webhook directly (no server proxy needed for static hosting)
 const WEBHOOK_URL = 'https://n8n.avlokai.com/webhook-test/image';
@@ -13,6 +17,8 @@ const BLOCKED_TYPES = [
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // xlsx
 ];
 
+// Store the file for upload after preview
+let pendingFile = null;
 
 const themeToggle = document.getElementById('theme-toggle');
 
@@ -67,6 +73,29 @@ fileInput.addEventListener('change', (e) => {
     fileInput.value = '';
 });
 
+// Upload button click handler
+if (uploadBtn) {
+    uploadBtn.addEventListener('click', () => {
+        if (pendingFile) {
+            uploadFile(pendingFile);
+        }
+    });
+}
+
+// Clear preview button handler
+if (clearPreviewBtn) {
+    clearPreviewBtn.addEventListener('click', () => {
+        clearPreview();
+    });
+}
+
+function clearPreview() {
+    pendingFile = null;
+    previewImage.src = '';
+    previewContainer.classList.add('hidden');
+    dropZone.classList.remove('hidden');
+}
+
 function resetUI() {
     statusContainer.classList.add('hidden');
     progressFill.style.width = '0%';
@@ -80,7 +109,26 @@ function resetUI() {
 
 function handleFile(file) {
     if (!validateFile(file)) return;
-    uploadFile(file);
+
+    // Check if it's an image for preview
+    if (file.type.startsWith('image/')) {
+        showPreview(file);
+    } else {
+        // For non-image files, upload directly
+        uploadFile(file);
+    }
+}
+
+function showPreview(file) {
+    pendingFile = file;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        previewImage.src = e.target.result;
+        previewContainer.classList.remove('hidden');
+        dropZone.classList.add('hidden');
+    };
+    reader.readAsDataURL(file);
 }
 
 function validateFile(file) {
@@ -150,6 +198,8 @@ function uploadFile(file) {
                         progressFill.classList.remove('dissolve');
                         progressFill.style.opacity = '1';
                         progressFill.style.transform = 'scale(1)';
+                        // Clear preview and show drop zone again
+                        clearPreview();
                     }, 2000);
                 }, 500);
             } else {
