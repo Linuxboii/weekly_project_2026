@@ -51,7 +51,7 @@ window.logout = function () {
     const API_BASE_URL = 'https://api.avlokai.com';
     // DEV: 'http://localhost:3001' (login runs on port 3001)
     // PROD: 'https://login.avlokai.com'
-    const LOGIN_PAGE_URL = 'http://localhost:3001';
+    const LOGIN_PAGE_URL = 'https://login.avlokai.com';
     const AUTH_TOKEN_KEY = 'auth_token';
 
     /* =========================================================
