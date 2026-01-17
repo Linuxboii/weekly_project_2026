@@ -11,7 +11,7 @@
  * - Verifying token with /auth/verify
  * - Showing the app after verification
  * 
- * SAFETY: This script will NOT run on login.avlokai.com
+ * SAFETY: This script will NOT run on login domain
  */
 
 // ============================================
@@ -21,13 +21,75 @@ const PROJECT_ID = 'week1';
 const PROJECT_REQUIRES_AUTH = true;
 
 // ============================================
+// DYNAMIC URL DETECTION (Production-Grade)
+// ============================================
+function getLoginUrl() {
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+
+    // 1. Custom Domain: week1.avlokai.com → login.avlokai.com
+    if (hostname === 'week1.avlokai.com') {
+        return 'https://login.avlokai.com/';
+    }
+
+    // 2. Vercel Preview/Production: Detect Vercel deployment
+    if (hostname.endsWith('.vercel.app')) {
+        const loginHostname = hostname
+            .replace(/^week1-/, 'login-')
+            .replace(/-week1\./, '-login.')
+            .replace(/-week1-/, '-login-');
+
+        if (loginHostname === hostname) {
+            console.warn('[Week1] Could not infer login URL from Vercel hostname');
+            return '../login/';
+        }
+
+        return `${protocol}//${loginHostname}/`;
+    }
+
+    // 3. Local Development
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:3001/';
+    }
+
+    // 4. Fallback: Same origin, relative path
+    return '../login/';
+}
+
+// ============================================
+// HELPER: Check if we're on the login domain/page
+// ============================================
+function isLoginDomain() {
+    const hostname = window.location.hostname;
+    const pathname = window.location.pathname;
+
+    // Custom domain check
+    if (hostname === 'login.avlokai.com') return true;
+
+    // Vercel login deployment check
+    if (hostname.endsWith('.vercel.app')) {
+        if (hostname.startsWith('login-') ||
+            hostname.includes('-login.') ||
+            hostname.includes('-login-')) {
+            return true;
+        }
+    }
+
+    // Path-based check (monorepo style)
+    if (pathname.includes('/login/') || pathname.startsWith('/login')) return true;
+
+    return false;
+}
+
+// ============================================
 // CONFIGURATION
 // ============================================
 const AUTH_GUARD_CONFIG = {
     API_BASE_URL: 'https://api.avlokai.com',
     AUTH_TOKEN_KEY: 'auth_token',
-    LOGIN_PAGE_URL: 'https://login.avlokai.com/',
+    LOGIN_PAGE_URL: getLoginUrl(),
 };
+console.log('[Week1] Login URL resolved to:', AUTH_GUARD_CONFIG.LOGIN_PAGE_URL);
 
 const THEME_KEY = 'theme';
 
@@ -39,7 +101,7 @@ const mainContainer = document.getElementById('main-container');
 // ============================================
 // LOGIN PAGE DETECTION (SAFETY - REQUIRED)
 // ============================================
-const IS_LOGIN_PAGE = window.location.hostname === 'login.avlokai.com';
+const IS_LOGIN_PAGE = isLoginDomain();
 
 if (IS_LOGIN_PAGE) {
     console.log('[AuthGuard] Login page detected — auth guard disabled');
