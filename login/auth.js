@@ -1,6 +1,23 @@
 /**
- * Authentication Module for Avlok AI Login Page
- * Handles login flow with JWT token storage
+ * ============================================
+ * LOGIN PAGE AUTHENTICATION SCRIPT
+ * ============================================
+ * 
+ * FOR USE ON: https://login.avlokai.com ONLY
+ * 
+ * This script handles:
+ * - Reading ?redirect= from URL
+ * - Rendering login form
+ * - Submitting credentials to /auth/login
+ * - Storing token in localStorage
+ * - Redirecting to the redirect URL
+ * 
+ * This script must NEVER:
+ * - Redirect to itself
+ * - Call /auth/verify
+ * - Include auth guard logic
+ * - Include PROJECT_REQUIRES_AUTH
+ * - Include PROJECT_ID
  */
 
 // ============================================
@@ -8,7 +25,6 @@
 // ============================================
 const API_BASE_URL = 'https://api.avlokai.com';
 const AUTH_TOKEN_KEY = 'auth_token';
-const LOGIN_PAGE_URL = 'https://login.avlokai.com/';
 const THEME_KEY = 'theme';
 
 // ============================================
@@ -30,17 +46,12 @@ const passwordToggleBtn = document.getElementById('toggle-password');
 // URL REDIRECT HANDLING
 // ============================================
 
+/**
+ * Get redirect URL from query parameters
+ */
 function getRedirectUrl() {
     const params = new URLSearchParams(window.location.search);
     return params.get('redirect');
-}
-
-function redirectToProject(redirectUrl) {
-    if (redirectUrl) {
-        window.location.href = redirectUrl;
-    } else {
-        showMainApp();
-    }
 }
 
 // ============================================
@@ -83,22 +94,26 @@ if (passwordToggleBtn) {
 }
 
 // ============================================
-// AUTH CHECK
+// PAGE INITIALIZATION
 // ============================================
 
-function checkAuth() {
+/**
+ * Initialize the login page
+ * Check if user has token and redirect URL
+ */
+function initLoginPage() {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const redirectUrl = getRedirectUrl();
 
     if (token && redirectUrl) {
-        // Has token and redirect URL - go to project
-        redirectToProject(redirectUrl);
+        // Has token and redirect URL - go to project immediately
+        window.location.href = redirectUrl;
     } else if (token && !redirectUrl) {
         // Has token, no redirect - show dashboard
-        showMainApp();
+        showDashboard();
     } else {
         // No token - show login form
-        showLoginScreen();
+        showLoginForm();
     }
 }
 
@@ -106,13 +121,13 @@ function checkAuth() {
 // UI STATE
 // ============================================
 
-function showLoginScreen() {
+function showLoginForm() {
     if (loginScreen) loginScreen.classList.remove('hidden');
     if (mainContainer) mainContainer.classList.add('hidden');
     document.title = 'Avlok AI - Login';
 }
 
-function showMainApp() {
+function showDashboard() {
     if (loginScreen) loginScreen.classList.add('hidden');
     if (mainContainer) mainContainer.classList.remove('hidden');
     document.title = 'Avlok AI - Projects';
@@ -201,13 +216,22 @@ async function handleLogin(e) {
         const data = await response.json();
 
         if (response.ok) {
+            // SUCCESS: Store token and redirect
             localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+
+            // Clear form
             if (emailInput) emailInput.value = '';
             if (passwordInput) passwordInput.value = '';
 
+            // Redirect to original project or show dashboard
             const redirectUrl = getRedirectUrl();
-            redirectToProject(redirectUrl);
+            if (redirectUrl) {
+                window.location.href = redirectUrl;
+            } else {
+                showDashboard();
+            }
         } else {
+            // FAILURE: Show error message
             switch (response.status) {
                 case 400:
                     showError('Please fill in all required fields.');
@@ -223,7 +247,7 @@ async function handleLogin(e) {
             }
         }
     } catch (error) {
-        console.error('[Auth] Login failed:', error);
+        console.error('[LoginPage] Login failed:', error);
         showError('Unable to connect. Please check your connection.');
     } finally {
         setLoading(false);
@@ -231,20 +255,15 @@ async function handleLogin(e) {
 }
 
 // ============================================
-// LOGOUT
+// LOGOUT (shows login form, no redirect)
 // ============================================
 
 function logout() {
     localStorage.removeItem(AUTH_TOKEN_KEY);
-    showLoginScreen();
-}
-
-function handleLogout() {
-    logout();
+    showLoginForm();
 }
 
 window.logout = logout;
-window.handleLogout = handleLogout;
 
 // ============================================
 // EVENT LISTENERS
@@ -283,5 +302,5 @@ if (passwordInput) {
 // ============================================
 
 window.addEventListener('load', () => {
-    checkAuth();
+    initLoginPage();
 });
