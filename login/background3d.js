@@ -75,8 +75,8 @@ const CONFIG = {
         ambientLight: 0.4, // Higher ambient for flat look
         pointLight: 0.6,
         planetEmissive: 0, // No self-glow
-        starFieldColor: 0x8899aa,
-        starFieldOpacity: 0.3,
+        starFieldColor: 0xddeeff,
+        starFieldOpacity: 0.7,
     },
 
     // === LIGHT MODE ===
@@ -89,8 +89,8 @@ const CONFIG = {
         ambientLight: 0.8,
         pointLight: 0.2,
         planetEmissive: 0,
-        starFieldColor: 0x445566,
-        starFieldOpacity: 0.2,
+        starFieldColor: 0x8899bb,
+        starFieldOpacity: 0.5,
     },
 
     enabled: true,
@@ -286,8 +286,8 @@ function createStarField() {
         velocities[i * 2] = 0;
         velocities[i * 2 + 1] = 0;
 
-        // Varied star sizes
-        sizes[i] = 0.05 + Math.random() * 0.12;
+        // Varied star sizes - larger for more brightness
+        sizes[i] = 0.08 + Math.random() * 0.14;
 
         // Core is brighter
         const distFromCenter = Math.sqrt(x * x + y * y);
@@ -305,7 +305,7 @@ function createStarField() {
 
     const material = new THREE.PointsMaterial({
         color: getTheme('starFieldColor'),
-        size: 0.1, // Base size
+        size: 0.15, // Larger base size for brighter stars
         transparent: true,
         opacity: getTheme('starFieldOpacity'),
         sizeAttenuation: true,
