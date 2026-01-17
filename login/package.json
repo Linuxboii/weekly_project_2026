@@ -4,8 +4,8 @@
     "description": "Avlok AI Login Dashboard - Project selection portal",
     "main": "index.html",
     "scripts": {
-        "dev": "serve -l 3001",
-        "start": "serve -l 3001",
+        "dev": "node server.js",
+        "start": "node server.js",
         "build": "echo 'No build step required - static site'"
     },
     "keywords": [
