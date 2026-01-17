@@ -19,7 +19,7 @@ const THEME_KEY = 'theme';
 // ABSOLUTE URLS (Configurable for Dev)
 // PROD: 'https://week2.avlokai.com'
 // DEV:  Week2 runs on Vite at port 5173 (root)
-const DASHBOARD_URL = 'http://localhost:5173';
+const DASHBOARD_URL = 'https://week2.avlokai.com';
 
 // ============================================
 // HANDLE LOGOUT/RELOGIN IMMEDIATELY (before DOM)
