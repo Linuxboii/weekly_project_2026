@@ -105,14 +105,16 @@ function initLoginPage() {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const redirectUrl = getRedirectUrl();
 
-    if (token && redirectUrl) {
-        // Has token and redirect URL - go to project immediately
-        window.location.href = redirectUrl;
-    } else if (token && !redirectUrl) {
+    if (token && !redirectUrl) {
         // Has token, no redirect - show dashboard
         showDashboard();
+    } else if (redirectUrl) {
+        // Has redirect URL - project sent us here, meaning auth failed
+        // Clear potentially invalid token and show login form
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        showLoginForm();
     } else {
-        // No token - show login form
+        // No token, no redirect - show login form
         showLoginForm();
     }
 }
