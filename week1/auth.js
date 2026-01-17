@@ -154,7 +154,8 @@ async function initProtectedPage() {
     initTheme();
 
     // Check for token handoff from login page (cross-subdomain)
-    checkUrlTokenHandoff();
+    // If we just received a fresh token, skip verification (it was just issued)
+    const freshToken = checkUrlTokenHandoff();
 
     const token = localStorage.getItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
 
@@ -173,8 +174,16 @@ async function initProtectedPage() {
         return;
     }
 
-    // Has token - verify with backend
-    console.log('[AuthGuard] Verifying token...');
+    // Fresh token from login page - trust it, skip verification
+    if (freshToken) {
+        console.log('[AuthGuard] Fresh token from login - showing app');
+        showMainApp();
+        setupEventListeners();
+        return;
+    }
+
+    // Existing token - verify with backend
+    console.log('[AuthGuard] Verifying existing token...');
     const result = await verifyToken(token);
 
     if (result.valid) {
