@@ -9,8 +9,8 @@
  * GUARANTEES:
  * - Hard stop on login domain
  * - Redirect throttling (loop-proof)
+ * - Logout-safe (no race conditions)
  * - Fail-open on backend / network errors
- * - Fresh-token protection (CRITICAL)
  * - Safe for 50+ projects
  */
 
@@ -27,7 +27,18 @@ const API_BASE_URL = 'https://api.avlokai.com';
 const LOGIN_PAGE_URL = 'https://login.avlokai.com';
 const AUTH_TOKEN_KEY = 'auth_token';
 const REDIRECT_TS_KEY = 'last_redirect_ts';
+const LOGOUT_FLAG_KEY = 'logout_in_progress';
 const REDIRECT_COOLDOWN_MS = 3000;
+
+/* =========================================================
+   LOGOUT BYPASS (CRITICAL)
+   Must run BEFORE any auth logic
+   ========================================================= */
+if (localStorage.getItem(LOGOUT_FLAG_KEY) === '1') {
+  console.warn('[AuthGuard] Logout in progress — skipping guard');
+  localStorage.removeItem(LOGOUT_FLAG_KEY);
+  return;
+}
 
 /* =========================================================
    SAFETY: NEVER RUN ON LOGIN DOMAIN
@@ -38,7 +49,7 @@ if (window.location.hostname === 'login.avlokai.com') {
 }
 
 /* =========================================================
-   RUN-ONCE GUARANTEE
+   RUN-ONCE PROTECTION
    ========================================================= */
 if (window.__AUTH_GUARD_RAN__) {
   console.warn('[AuthGuard] Already executed — stopping');
@@ -47,48 +58,51 @@ if (window.__AUTH_GUARD_RAN__) {
 window.__AUTH_GUARD_RAN__ = true;
 
 /* =========================================================
-   TOKEN HANDOFF (URL → localStorage)
-   ========================================================= */
-let FRESH_TOKEN = false;
-
-(function handleTokenHandoff() {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('auth_token');
-
-  if (!token) return;
-
-  console.log('[AuthGuard] Fresh token received from login');
-  FRESH_TOKEN = true;
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-
-  params.delete('auth_token');
-  const cleanUrl =
-    window.location.pathname +
-    (params.toString() ? `?${params}` : '') +
-    window.location.hash;
-
-  window.history.replaceState({}, document.title, cleanUrl);
-})();
-
-/* =========================================================
    MAIN AUTH FLOW
    ========================================================= */
-(async function authFlow() {
+runAuthGuard();
+
+async function runAuthGuard() {
+  /* -------------------------------------------------------
+     TOKEN HANDOFF (URL → localStorage)
+     ------------------------------------------------------- */
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('auth_token');
+
+  if (urlToken) {
+    console.log('[AuthGuard] Token handoff detected');
+    localStorage.setItem(AUTH_TOKEN_KEY, urlToken);
+
+    params.delete('auth_token');
+    const cleanUrl =
+      window.location.pathname +
+      (params.toString() ? `?${params.toString()}` : '') +
+      window.location.hash;
+
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
-  // Public project
+  /* -------------------------------------------------------
+     PUBLIC PROJECT
+     ------------------------------------------------------- */
   if (!PROJECT_REQUIRES_AUTH) {
     allowApp();
     return;
   }
 
-  // No token → login
+  /* -------------------------------------------------------
+     NO TOKEN → LOGIN
+     ------------------------------------------------------- */
   if (!token) {
     redirectToLogin('no_token');
     return;
   }
 
-  // Local dev → skip verification
+  /* -------------------------------------------------------
+     LOCAL DEV → SKIP VERIFY
+     ------------------------------------------------------- */
   if (
     window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1'
@@ -98,50 +112,36 @@ let FRESH_TOKEN = false;
     return;
   }
 
-  // Verify token with backend
+  /* -------------------------------------------------------
+     VERIFY TOKEN WITH BACKEND
+     ------------------------------------------------------- */
   try {
     console.log('[AuthGuard] Verifying token...');
     const res = await fetch(`${API_BASE_URL}/auth/verify`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'X-Project-Id': PROJECT_ID
       }
     });
 
-    // Backend failure → FAIL OPEN
+    // Backend error → FAIL OPEN
     if (res.status >= 500) {
       console.warn('[AuthGuard] Backend error — FAIL OPEN');
       allowApp();
       return;
     }
 
-    // Explicit rejection
+    // Explicit denial
     if (!res.ok) {
-      console.warn('[AuthGuard] Token rejected by backend');
-
-      // 🔑 CRITICAL FIX: never bounce immediately after login
-      if (FRESH_TOKEN) {
-        console.warn('[AuthGuard] Fresh token rejected — FAIL OPEN');
-        allowApp();
-        return;
-      }
-
+      console.warn('[AuthGuard] Token rejected');
       localStorage.removeItem(AUTH_TOKEN_KEY);
       redirectToLogin('unauthorized');
       return;
     }
 
     const result = await res.json();
-
     if (result.valid) {
-      allowApp();
-      return;
-    }
-
-    // valid:false
-    if (FRESH_TOKEN) {
-      console.warn('[AuthGuard] Fresh token invalid — FAIL OPEN');
       allowApp();
       return;
     }
@@ -150,12 +150,12 @@ let FRESH_TOKEN = false;
     redirectToLogin('invalid');
 
   } catch (err) {
-    // Network / CORS → FAIL OPEN
+    // Network / CORS error → FAIL OPEN
     console.warn('[AuthGuard] Network error — FAIL OPEN');
     console.error(err);
     allowApp();
   }
-})();
+}
 
 /* =========================================================
    REDIRECT (LOOP-SAFE)
@@ -172,11 +172,9 @@ function redirectToLogin(reason) {
   localStorage.setItem(REDIRECT_TS_KEY, String(now));
 
   const currentUrl = window.location.href;
-  const loginUrl =
+  window.location.href =
     `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(currentUrl)}` +
     (reason ? `&reason=${reason}` : '');
-
-  window.location.href = loginUrl;
 }
 
 /* =========================================================
@@ -188,10 +186,18 @@ function allowApp() {
 }
 
 /* =========================================================
-   LOGOUT (GLOBAL)
+   LOGOUT (GLOBAL — GUARANTEED)
    ========================================================= */
 window.logout = function () {
+  console.log('[AuthGuard] Logout initiated');
+
+  // Prevent auth guard from firing during navigation
+  localStorage.setItem(LOGOUT_FLAG_KEY, '1');
+
+  // Clear auth data immediately
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(REDIRECT_TS_KEY);
-  window.location.href = LOGIN_PAGE_URL;
+
+  // Hard redirect
+  window.location.replace(`${LOGIN_PAGE_URL}?action=logout`);
 };
