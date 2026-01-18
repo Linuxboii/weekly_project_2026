@@ -18,6 +18,8 @@
 /* =========================================================
    🔐 AUTH TOKEN URL CLEANUP (MUST RUN FIRST)
    ========================================================= */
+let __FRESH_TOKEN__ = false; // Flag to skip verification for fresh tokens
+
 (() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('auth_token');
@@ -29,8 +31,10 @@
         localStorage.setItem('auth_token', token);
 
         // CRITICAL: Clear redirect cooldown on fresh token
-        // This prevents loop-lock when user successfully logs in
         localStorage.removeItem('last_redirect_ts');
+
+        // Mark as fresh token (skip verification)
+        __FRESH_TOKEN__ = true;
 
         // Remove token from URL
         params.delete('auth_token');
@@ -41,7 +45,7 @@
 
         window.history.replaceState({}, document.title, cleanUrl);
 
-        console.log('[AuthGuard] URL cleaned, token stored');
+        console.log('[AuthGuard] URL cleaned, fresh token stored');
     }
 })();
 
@@ -117,6 +121,13 @@ if (!isLogoutInProgress && !isLoginDomain && !alreadyRan) {
             window.location.hostname === '127.0.0.1'
         ) {
             console.log('[AuthGuard] DEV MODE — skipping verification');
+            allowApp();
+            return;
+        }
+
+        // Fresh token from login → trust it, skip verification
+        if (__FRESH_TOKEN__) {
+            console.log('[AuthGuard] Fresh token from login — skipping verification');
             allowApp();
             return;
         }
