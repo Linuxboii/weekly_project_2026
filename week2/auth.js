@@ -12,13 +12,17 @@
  */
 
 // ============================================
-// LOGIN URL (HARDCODED - FIX 2)
-// All environments use the same login domain
+// LOGIN URL (HARDCODED)
 // ============================================
 const LOGIN_PAGE_URL = 'https://login.avlokai.com';
 
 // ============================================
-// LOGOUT (ALWAYS AVAILABLE GLOBALLY)
+// GLOBAL REDIRECT LOCK
+// ============================================
+let __REDIRECT_IN_PROGRESS__ = false;
+
+// ============================================
+// LOGOUT (GLOBAL)
 // ============================================
 window.logout = function () {
     console.log('[Week2] Logout triggered');
@@ -28,19 +32,19 @@ window.logout = function () {
 };
 
 // ============================================
-// LOGIN DOMAIN DETECTION (FIX 1 - DOMAIN ONLY)
-// No pathname checks allowed
+// LOGIN DOMAIN DETECTION (DOMAIN ONLY)
 // ============================================
 function isLoginDomain() {
     return window.location.hostname === 'login.avlokai.com';
 }
 
 (async function () {
+
     /* =========================================================
        A. HARD STOP — NEVER RUN ON LOGIN DOMAIN
        ========================================================= */
     if (isLoginDomain()) {
-        console.warn('[Week2 Auth] STOP: Login domain/path detected');
+        console.warn('[Week2 Auth] STOP: Login domain detected');
         return;
     }
 
@@ -54,9 +58,9 @@ function isLoginDomain() {
     window.__WEEK2_AUTH_RAN__ = true;
 
     /* =========================================================
-       C. CONFIGURATION (CANONICAL)
+       C. CONFIGURATION
        ========================================================= */
-    const PROJECT_ID = 'week2';                 // 🔒 MUST match DB
+    const PROJECT_ID = 'week2';
     const PROJECT_REQUIRES_AUTH = true;
     const API_BASE_URL = 'https://api.avlokai.com';
     const AUTH_TOKEN_KEY = 'auth_token';
@@ -71,7 +75,9 @@ function isLoginDomain() {
         console.log('[Week2 Auth] Token handoff detected');
         localStorage.setItem(AUTH_TOKEN_KEY, urlToken);
 
-        // Remove token from URL without reload
+        // CRITICAL: reset redirect state
+        localStorage.removeItem('last_redirect_ts');
+
         params.delete('auth_token');
         const cleanUrl =
             window.location.pathname +
@@ -87,33 +93,31 @@ function isLoginDomain() {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
     if (PROJECT_REQUIRES_AUTH && !token) {
-        console.warn('[Week2 Auth] No token → redirecting to login');
         redirectToLogin('no_token');
         return;
     }
 
-    // Public project (future-proofing)
     if (!PROJECT_REQUIRES_AUTH) {
         showApp();
         return;
     }
 
     /* =========================================================
-       F. VERIFY TOKEN (FAIL-OPEN STRATEGY)
+       F. VERIFY TOKEN (FAIL-OPEN)
        ========================================================= */
 
-    // DEV MODE: Skip API verification for local development
-    const DEV_MODE = window.location.hostname === 'localhost';
+    const DEV_MODE = (
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1'
+    );
 
     if (DEV_MODE) {
-        console.log('[Week2 Auth] DEV MODE: Skipping API verification');
-        console.log('[Week2 Auth] Token present:', token ? 'Yes' : 'No');
+        console.log('[Week2 Auth] DEV MODE — skipping verification');
         showApp();
         return;
     }
 
     try {
-        console.log('[Week2 Auth] Verifying token with API...');
         const response = await fetch(`${API_BASE_URL}/auth/verify`, {
             method: 'POST',
             headers: {
@@ -122,34 +126,25 @@ function isLoginDomain() {
             }
         });
 
-        console.log('[Week2 Auth] Verify response status:', response.status);
-
-        // FAIL-OPEN on backend/network failure
         if (response.status >= 500) {
-            console.warn('[Week2 Auth] Server error → FAIL OPEN');
+            console.warn('[Week2 Auth] Server error — FAIL OPEN');
             showApp();
             return;
         }
 
         if (response.ok) {
             const result = await response.json();
-            console.log('[Week2 Auth] Verify result:', result);
-
             if (result.valid) {
-                console.log('[Week2 Auth] Access verified');
                 showApp();
                 return;
             }
         }
 
-        // Explicit denial (401 / 403)
-        console.warn('[Week2 Auth] Access denied → redirecting');
         localStorage.removeItem(AUTH_TOKEN_KEY);
         redirectToLogin('unauthorized');
 
     } catch (err) {
-        // Network error → FAIL OPEN
-        console.warn('[Week2 Auth] Network error → FAIL OPEN');
+        console.warn('[Week2 Auth] Network error — FAIL OPEN');
         console.error(err);
         showApp();
     }
@@ -159,12 +154,14 @@ function isLoginDomain() {
        ========================================================= */
 
     function redirectToLogin(action) {
+        if (__REDIRECT_IN_PROGRESS__) return;
+        __REDIRECT_IN_PROGRESS__ = true;
+
         const now = Date.now();
         const lastRedirect = Number(localStorage.getItem('last_redirect_ts') || 0);
 
-        // FIX 3: Prevent redirect loops (3-second window)
         if (now - lastRedirect < 3000) {
-            console.warn('[Auth] Redirect suppressed to prevent loop');
+            console.warn('[Auth] Redirect suppressed');
             return;
         }
 
@@ -177,13 +174,7 @@ function isLoginDomain() {
     }
 
     function showApp() {
-        // Signal app that auth passed
         window.dispatchEvent(new CustomEvent('authSuccess'));
     }
-
-    /* =========================================================
-       LOGOUT (GLOBAL) - Moved outside IIFE
-       ========================================================= */
-    // window.logout is now defined at the top of the file
 
 })();
