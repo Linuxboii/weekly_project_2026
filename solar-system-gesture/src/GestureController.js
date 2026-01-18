@@ -12,16 +12,7 @@ export class GestureController {
 
         // Debug Information
         this.debugInfo = document.createElement('div');
-        this.debugInfo.style.position = 'absolute';
-        this.debugInfo.style.bottom = '140px';
-        this.debugInfo.style.left = '10px';
-        this.debugInfo.style.color = '#0f0';
-        this.debugInfo.style.fontFamily = 'monospace';
-        this.debugInfo.style.fontSize = '12px';
-        this.debugInfo.style.background = 'rgba(0,0,0,0.7)';
-        this.debugInfo.style.padding = '8px';
-        this.debugInfo.style.pointerEvents = 'none';
-        this.debugInfo.style.borderRadius = '4px';
+        this.debugInfo.className = 'gesture-debug-info';
         this.debugInfo.innerHTML = 'Initializing Hands...';
         document.body.appendChild(this.debugInfo);
 
