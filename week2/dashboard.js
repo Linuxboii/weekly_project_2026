@@ -9,7 +9,7 @@ const PROJECTS = [
         id: 'week1',
         title: 'Week 1',
         description: 'File uploader with interactive particle background',
-        url: '../week1/', // Relative path to week1
+        url: 'https://week1.avlokai.com/', // Absolute URL for cross-subdomain
         icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/>
