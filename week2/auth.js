@@ -12,67 +12,27 @@
  */
 
 // ============================================
-// URL CONFIGURATION
-// Production custom domains - EDIT THESE if your domains are different
+// LOGIN URL (HARDCODED - FIX 2)
+// All environments use the same login domain
 // ============================================
-const CUSTOM_DOMAINS = {
-    login: 'login.avlokai.com',
-    week2: 'week2.avlokai.com'
-};
-
-// ============================================
-// DYNAMIC URL DETECTION
-// ============================================
-function getLoginUrl() {
-    const hostname = window.location.hostname;
-
-    // 1. Local development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3001';
-    }
-
-    // 2. Custom domain (week2.avlokai.com) → go to login.avlokai.com
-    if (hostname === CUSTOM_DOMAINS.week2) {
-        return `https://${CUSTOM_DOMAINS.login}`;
-    }
-
-    // 3. Vercel deployment → redirect to production custom domain
-    if (hostname.endsWith('.vercel.app')) {
-        console.log('[Week2] Vercel deployment detected, using production login URL');
-        return `https://${CUSTOM_DOMAINS.login}`;
-    }
-
-    // 4. Fallback: relative URL
-    return '../login/';
-}
+const LOGIN_PAGE_URL = 'https://login.avlokai.com';
 
 // ============================================
 // LOGOUT (ALWAYS AVAILABLE GLOBALLY)
 // ============================================
-const __WEEK2_LOGIN_URL__ = getLoginUrl();
-console.log('[Week2] Login URL:', __WEEK2_LOGIN_URL__);
-
 window.logout = function () {
     console.log('[Week2] Logout triggered');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('last_redirect_ts');
-    window.location.href = `${__WEEK2_LOGIN_URL__}?action=logout`;
+    window.location.href = `${LOGIN_PAGE_URL}?action=logout`;
 };
 
 // ============================================
-// HELPER: Check if we're on the login domain/page
+// LOGIN DOMAIN DETECTION (FIX 1 - DOMAIN ONLY)
+// No pathname checks allowed
 // ============================================
 function isLoginDomain() {
-    const hostname = window.location.hostname;
-    const pathname = window.location.pathname;
-
-    // Check if we're on the login custom domain
-    if (hostname === CUSTOM_DOMAINS.login) return true;
-
-    // Path-based check (monorepo style)
-    if (pathname.includes('/login/') || pathname.startsWith('/login')) return true;
-
-    return false;
+    return window.location.hostname === 'login.avlokai.com';
 }
 
 (async function () {
@@ -99,7 +59,6 @@ function isLoginDomain() {
     const PROJECT_ID = 'week2';                 // 🔒 MUST match DB
     const PROJECT_REQUIRES_AUTH = true;
     const API_BASE_URL = 'https://api.avlokai.com';
-    const LOGIN_PAGE_URL = __WEEK2_LOGIN_URL__;  // Use dynamically resolved URL
     const AUTH_TOKEN_KEY = 'auth_token';
 
     /* =========================================================
@@ -200,12 +159,21 @@ function isLoginDomain() {
        ========================================================= */
 
     function redirectToLogin(action) {
+        const now = Date.now();
+        const lastRedirect = Number(localStorage.getItem('last_redirect_ts') || 0);
+
+        // FIX 3: Prevent redirect loops (3-second window)
+        if (now - lastRedirect < 3000) {
+            console.warn('[Auth] Redirect suppressed to prevent loop');
+            return;
+        }
+
+        localStorage.setItem('last_redirect_ts', now.toString());
+
         const currentUrl = window.location.href;
-        const loginUrl =
+        window.location.href =
             `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(currentUrl)}` +
             (action ? `&action=${action}` : '');
-
-        window.location.href = loginUrl;
     }
 
     function showApp() {
