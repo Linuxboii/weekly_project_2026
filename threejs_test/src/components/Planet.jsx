@@ -1,10 +1,14 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { Color, Vector3 } from 'three'
 import { Line, Sphere, Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 
+// Get portal container once
+const getPortalContainer = () => document.getElementById('html-portal')
+
 export function Planet({ def, onClick, planetRef, isSelected, onClose }) {
     const radius = def.orbit
+    const portalContainer = useMemo(() => getPortalContainer(), [])
 
     // PBR Material Props
     const color = useMemo(() => new Color().setHSL(def.hue, def.sat, def.lum), [def])
@@ -68,39 +72,34 @@ export function Planet({ def, onClick, planetRef, isSelected, onClose }) {
                     </mesh>
                 )}
 
-                {/* Moons */}
-                {def.moons?.map((moon, i) => (
-                    <Moon key={moon.name} def={moon} />
-                ))}
-
-                {/* Info Card Overlay */}
-                {isSelected && (
+                {/* Info Card Overlay - Portaled to avoid ScrollControls transform issues */}
+                {isSelected && portalContainer && (
                     <Html
-                        transform // NOW it behaves like a 3D object
-                        position={[0, def.size * 1.5 + 0.5, 0]} // Offset + extra clearance
-                        center
-                        distanceFactor={12} // Tuned for standard viewing distance
-                        style={{ pointerEvents: 'none', zIndex: 100 }}
+                        position={[def.size + 5, 0, 0]}
+                        portal={{ current: portalContainer }}
+                        zIndexRange={[100, 0]}
+                        style={{
+                            pointerEvents: 'none',
+                        }}
                     >
-                        <div style={{
+                        <div className="popup-container" style={{
                             color: 'white',
                             background: 'rgba(5, 5, 10, 0.90)',
-                            padding: '20px',
+                            padding: '24px',
                             borderRadius: '16px',
-                            width: '240px', // Slightly narrower
-                            border: '1px solid rgba(255,255,255,0.2)',
-                            backdropFilter: 'blur(16px)',
+                            width: '260px',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            backdropFilter: 'blur(20px)',
                             fontFamily: 'system-ui, sans-serif',
                             pointerEvents: 'auto',
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-                            transform: 'translate3d(0, 0, 0)', // Force GPU
+                            boxShadow: '0 20px 50px rgba(0,0,0,0.9)',
                             textAlign: 'left'
                         }}>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700 }}>{def.displayName}</h3>
-                            <p style={{ margin: '0 0 12px 0', fontSize: '0.8rem', opacity: 0.7, lineHeight: '1.4' }}>{def.description}</p>
+                            <h3 className="popup-text-delayed" style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em' }}>{def.displayName}</h3>
+                            <p className="popup-text-delayed" style={{ margin: '0 0 16px 0', fontSize: '0.85rem', opacity: 0.8, lineHeight: '1.5' }}>{def.description}</p>
 
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '0.75rem', opacity: 0.5, marginBottom: '16px', fontWeight: 500 }}>
-                                <span style={{ background: 'rgba(255,255,255,0.1)', padding: '3px 6px', borderRadius: '4px' }}>
+                            <div className="popup-text-delayed" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '0.75rem', opacity: 0.6, marginBottom: '20px', fontWeight: 500 }}>
+                                <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '6px' }}>
                                     Orbit: {def.orbit.toFixed(1)}
                                 </span>
                                 <span style={{ background: 'rgba(255,255,255,0.1)', padding: '3px 6px', borderRadius: '4px' }}>
