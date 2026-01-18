@@ -78,10 +78,30 @@ async function init() {
 
         } catch (err) {
             console.error("Failed to start gesture controller:", err);
-            gestureController.setError("Camera Access Denied");
-            startBtn.textContent = 'Camera Denied ❌';
-            startBtn.style.backgroundColor = 'red';
-            alert("Camera access denied. Please allow camera access in your browser settings and reload.");
+
+            // Analyze specific error
+            let userMessage = "Unable to access camera.";
+            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                userMessage = "Camera permission denied. Please click the lock icon 🔒 in your address bar to allow access.";
+            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                userMessage = "No camera found. Please connect a webcam.";
+            } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                userMessage = "Camera is in use by another application. Please close other apps using the camera.";
+            } else {
+                userMessage = `Error: ${err.message || 'Unknown error'}`;
+            }
+
+            // Update UI
+            const errorEl = document.getElementById('start-error');
+            if (errorEl) {
+                errorEl.textContent = userMessage;
+                errorEl.style.display = 'block';
+            }
+
+            gestureController.setError("Camera Error");
+            startBtn.textContent = 'Retry Start';
+            startBtn.style.backgroundColor = '#ef4444'; // Red
+            startBtn.style.opacity = '1';
         }
     });
 }
