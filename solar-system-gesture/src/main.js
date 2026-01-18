@@ -54,15 +54,36 @@ async function init() {
         }
     });
 
-    // 3. Start Camera and Gesture Loop
-    try {
-        await gestureController.start();
-        console.log("Gesture Controller Started");
-    } catch (err) {
-        console.error("Failed to start gesture controller:", err);
-        gestureController.setError("Camera Access Denied or Error");
-        alert("Camera access denied or error. Please allow camera access to use gestures.");
-    }
+    // 3. Wait for User Interaction to Start Camera (Fixes Autoplay/Permission issues)
+    const startBtn = document.getElementById('start-btn');
+    const startScreen = document.getElementById('start-screen');
+
+    startBtn.addEventListener('click', async () => {
+        // UI Feedback
+        startBtn.textContent = 'Starting...';
+        startBtn.style.opacity = '0.7';
+
+        // Initialize Audio Contexts (if any) here...
+
+        // Start Gestures
+        try {
+            await gestureController.start();
+            console.log("Gesture Controller Started");
+
+            // Success - Hide Screen
+            startScreen.classList.add('hidden');
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+            }, 500);
+
+        } catch (err) {
+            console.error("Failed to start gesture controller:", err);
+            gestureController.setError("Camera Access Denied");
+            startBtn.textContent = 'Camera Denied ❌';
+            startBtn.style.backgroundColor = 'red';
+            alert("Camera access denied. Please allow camera access in your browser settings and reload.");
+        }
+    });
 }
 
 init();

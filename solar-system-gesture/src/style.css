@@ -191,6 +191,7 @@ video {
         transform: translate(-50%, -100%) scale(1);
     }
 }
+
 .gesture-debug-info {
     position: absolute;
     bottom: 140px;
@@ -204,4 +205,85 @@ video {
     border-radius: 4px;
     z-index: 1000;
     border: 1px solid rgba(0, 255, 0, 0.3);
+}
+
+/* Start Screen */
+#start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(15px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+}
+
+#start-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#start-screen .content {
+    background: rgba(20, 20, 25, 0.9);
+    padding: 40px 60px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    max-width: 400px;
+}
+
+#start-screen h1 {
+    font-size: 2.5rem;
+    margin: 0 0 10px 0;
+    background: linear-gradient(to right, #fff, #a5b4fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#start-screen p {
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 30px 0;
+    font-size: 1.1rem;
+}
+
+#start-screen .permissions-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#start-screen button {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+}
+
+#start-screen button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.5);
+}
+
+#start-screen button:active {
+    transform: translateY(0);
 }
