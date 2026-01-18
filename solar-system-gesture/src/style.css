@@ -28,6 +28,17 @@ video {
     transform: scaleX(-1);
 }
 
+#input-video {
+    position: fixed;
+    width: 1px;
+    height: 1px;
+    opacity: 0.01;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    z-index: -1;
+}
+
 #output-canvas {
     transform: scaleX(-1);
     /* Mirror the preview to match user movement */
