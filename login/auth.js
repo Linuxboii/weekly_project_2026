@@ -17,50 +17,44 @@ const AUTH_TOKEN_KEY = 'auth_token';
 const THEME_KEY = 'theme';
 
 // ============================================
-// DYNAMIC URL DETECTION (Production-Grade)
+// URL CONFIGURATION
+// Production custom domains - EDIT THESE if your domains are different
+// ============================================
+const CUSTOM_DOMAINS = {
+    login: 'login.avlokai.com',
+    week2: 'week2.avlokai.com'
+};
+
+// ============================================
+// DYNAMIC URL DETECTION
 // ============================================
 function getDashboardUrl() {
     const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
 
-    // 1. Custom Domain: login.avlokai.com → week2.avlokai.com
-    if (hostname === 'login.avlokai.com') {
-        return 'https://week2.avlokai.com';
-    }
-
-    // 2. Vercel Preview/Production: Detect Vercel deployment
-    //    Vercel URLs: project-name.vercel.app OR project-git-branch-team.vercel.app
-    if (hostname.endsWith('.vercel.app')) {
-        // Try to find corresponding week2 deployment
-        // Pattern: login-xxx.vercel.app → week2-xxx.vercel.app
-        // Or: weekly-project-2026-login.vercel.app → weekly-project-2026-week2.vercel.app
-        const week2Hostname = hostname
-            .replace(/^login-/, 'week2-')           // login-xxx → week2-xxx
-            .replace(/-login\./, '-week2.')         // xxx-login.vercel → xxx-week2.vercel
-            .replace(/-login-/, '-week2-');         // xxx-login-yyy → xxx-week2-yyy
-
-        // If no substitution happened, the naming might be different
-        // In that case, use relative path as fallback
-        if (week2Hostname === hostname) {
-            console.warn('[Login] Could not infer week2 URL from Vercel hostname');
-            return '../week2/';  // Fallback to relative (works if same root deploy)
-        }
-
-        return `${protocol}//${week2Hostname}`;
-    }
-
-    // 3. Local Development
+    // 1. Local development
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:5173';  // Vite default port for week2
+        return 'http://localhost:5173';
     }
 
-    // 4. Fallback: Same origin, relative path
-    console.warn('[Login] Unknown deployment environment, using relative URL');
+    // 2. Custom domain (login.avlokai.com) → go to week2.avlokai.com
+    if (hostname === CUSTOM_DOMAINS.login) {
+        return `https://${CUSTOM_DOMAINS.week2}`;
+    }
+
+    // 3. Vercel deployment → still redirect to production custom domain
+    //    This ensures consistency: preview login → production week2
+    //    If you want preview → preview, you'll need to use relative URLs
+    if (hostname.endsWith('.vercel.app')) {
+        console.log('[Login] Vercel deployment detected, using production week2 URL');
+        return `https://${CUSTOM_DOMAINS.week2}`;
+    }
+
+    // 4. Fallback: relative URL (for monorepo deploys)
     return '../week2/';
 }
 
 const DASHBOARD_URL = getDashboardUrl();
-console.log('[Login] Dashboard URL resolved to:', DASHBOARD_URL);
+console.log('[Login] Dashboard URL:', DASHBOARD_URL);
 
 // ============================================
 // HANDLE LOGOUT/RELOGIN IMMEDIATELY (before DOM)
