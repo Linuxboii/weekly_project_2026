@@ -12,39 +12,37 @@
  */
 
 // ============================================
-// DYNAMIC URL DETECTION (Production-Grade)
+// URL CONFIGURATION
+// Production custom domains - EDIT THESE if your domains are different
+// ============================================
+const CUSTOM_DOMAINS = {
+    login: 'login.avlokai.com',
+    week2: 'week2.avlokai.com'
+};
+
+// ============================================
+// DYNAMIC URL DETECTION
 // ============================================
 function getLoginUrl() {
     const hostname = window.location.hostname;
-    const protocol = window.location.protocol;
 
-    // 1. Custom Domain: week2.avlokai.com → login.avlokai.com
-    if (hostname === 'week2.avlokai.com') {
-        return 'https://login.avlokai.com';
-    }
-
-    // 2. Vercel Preview/Production: Detect Vercel deployment
-    if (hostname.endsWith('.vercel.app')) {
-        // Pattern: week2-xxx.vercel.app → login-xxx.vercel.app
-        const loginHostname = hostname
-            .replace(/^week2-/, 'login-')           // week2-xxx → login-xxx
-            .replace(/-week2\./, '-login.')         // xxx-week2.vercel → xxx-login.vercel
-            .replace(/-week2-/, '-login-');         // xxx-week2-yyy → xxx-login-yyy
-
-        if (loginHostname === hostname) {
-            console.warn('[Week2] Could not infer login URL from Vercel hostname');
-            return '../login/';  // Fallback to relative
-        }
-
-        return `${protocol}//${loginHostname}`;
-    }
-
-    // 3. Local Development
+    // 1. Local development
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
         return 'http://localhost:3001';
     }
 
-    // 4. Fallback: Same origin, relative path
+    // 2. Custom domain (week2.avlokai.com) → go to login.avlokai.com
+    if (hostname === CUSTOM_DOMAINS.week2) {
+        return `https://${CUSTOM_DOMAINS.login}`;
+    }
+
+    // 3. Vercel deployment → redirect to production custom domain
+    if (hostname.endsWith('.vercel.app')) {
+        console.log('[Week2] Vercel deployment detected, using production login URL');
+        return `https://${CUSTOM_DOMAINS.login}`;
+    }
+
+    // 4. Fallback: relative URL
     return '../login/';
 }
 
@@ -52,7 +50,7 @@ function getLoginUrl() {
 // LOGOUT (ALWAYS AVAILABLE GLOBALLY)
 // ============================================
 const __WEEK2_LOGIN_URL__ = getLoginUrl();
-console.log('[Week2] Login URL resolved to:', __WEEK2_LOGIN_URL__);
+console.log('[Week2] Login URL:', __WEEK2_LOGIN_URL__);
 
 window.logout = function () {
     console.log('[Week2] Logout triggered');
@@ -68,17 +66,8 @@ function isLoginDomain() {
     const hostname = window.location.hostname;
     const pathname = window.location.pathname;
 
-    // Custom domain check
-    if (hostname === 'login.avlokai.com') return true;
-
-    // Vercel login deployment check
-    if (hostname.endsWith('.vercel.app')) {
-        if (hostname.startsWith('login-') ||
-            hostname.includes('-login.') ||
-            hostname.includes('-login-')) {
-            return true;
-        }
-    }
+    // Check if we're on the login custom domain
+    if (hostname === CUSTOM_DOMAINS.login) return true;
 
     // Path-based check (monorepo style)
     if (pathname.includes('/login/') || pathname.startsWith('/login')) return true;

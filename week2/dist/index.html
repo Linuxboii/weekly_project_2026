@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avlok AI - Projects</title>
+    <meta name="description" content="Access your Avlok AI projects. Select a project to continue.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="auth.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-qxecjFBN.css">
+</head>
+
+<body>
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <header class="dashboard-header">
+            <div class="header-left">
+                <div class="logo-small">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                        <path d="M2 17l10 5 10-5" />
+                        <path d="M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <span class="brand-name">Avlok AI</span>
+            </div>
+            <div class="header-actions">
+                <button id="reset-solar-btn" class="reset-btn" title="Reset Solar System">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                    </svg>
+                </button>
+                <button id="logout-btn" class="logout-btn" onclick="logout(); return false;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="dashboard-main">
+            <div class="welcome-section">
+                <h1 class="welcome-title">Your Projects</h1>
+                <p class="welcome-subtitle">Select a project to continue</p>
+            </div>
+
+            <div class="projects-grid" id="projects-grid">
+                <!-- Project cards will be rendered here -->
+            </div>
+        </main>
+
+        <footer class="dashboard-footer">
+            <p>© 2026 Avlok AI. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 3D Background System -->
+    <script src="background3d.js"></script>
+    <!-- Dashboard App -->
+    <script src="dashboard.js"></script>
+</body>
+
+</html>
