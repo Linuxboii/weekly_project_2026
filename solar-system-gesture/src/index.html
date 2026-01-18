@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gesture Solar System</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <div id="app"></div>
+    <video id="input-video" style="display: none;"></video>
+    <canvas id="output-canvas"
+        style="position: absolute; bottom: 10px; left: 10px; width: 160px; height: 120px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; z-index: 100;"></canvas>
+
+    <div id="gesture-help-overlay"
+        style="display: none; position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
+        <h3 style="margin-top: 0;">Gesture Guide</h3>
+        <ul style="padding-left: 20px; line-height: 1.6;">
+            <li><strong>✋ Open Palm:</strong> Reset / Normal Speed</li>
+            <li><strong>✊ Fist:</strong> Move Hand to Rotate</li>
+            <li><strong>🤏 Pinch:</strong> Zoom In/Out</li>
+            <li><strong>👍 Thumbs Up:</strong> Fast Forward</li>
+            <li><strong>👎 Thumbs Down:</strong> Rewind Time</li>
+            <li><strong>👌 OK Sign:</strong> Lock Camera to Planet</li>
+            <li><strong>🤘 Rock Sign:</strong> Spawn Comet</li>
+            <li><strong>✌️ Peace Sign:</strong> Toggle This Menu</li>
+            <li><strong>👋 Swipe:</strong> Next/Prev Planet</li>
+        </ul>
+    </div>
+
+    <div id="instruction-overlay">
+        <div class="instruction">
+            <span class="icon">✌️</span>
+            <span class="text">Show Peace for Help</span>
+        </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+
+</html>
