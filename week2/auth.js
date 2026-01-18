@@ -23,10 +23,14 @@
     const token = params.get('auth_token');
 
     if (token) {
-        console.log('[AuthGuard] Cleaning auth_token from URL');
+        console.log('[AuthGuard] Token handoff detected — storing token');
 
         // Persist token immediately
         localStorage.setItem('auth_token', token);
+
+        // CRITICAL: Clear redirect cooldown on fresh token
+        // This prevents loop-lock when user successfully logs in
+        localStorage.removeItem('last_redirect_ts');
 
         // Remove token from URL
         params.delete('auth_token');
@@ -36,6 +40,8 @@
             window.location.hash;
 
         window.history.replaceState({}, document.title, cleanUrl);
+
+        console.log('[AuthGuard] URL cleaned, token stored');
     }
 })();
 
