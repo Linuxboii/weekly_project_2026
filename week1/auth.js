@@ -264,7 +264,7 @@ async function initProtectedPage() {
 
 function logout() {
     localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
-    window.location.href = AUTH_GUARD_CONFIG.LOGIN_PAGE_URL;
+    window.location.href = `${AUTH_GUARD_CONFIG.LOGIN_PAGE_URL}?action=logout`;
 }
 
 window.logout = logout;
