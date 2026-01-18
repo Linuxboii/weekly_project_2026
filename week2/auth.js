@@ -1,18 +1,43 @@
 /**
  * =========================================================
- * CANONICAL PROJECT AUTH GUARD (NO REDIRECT LOOPS)
+ * CANONICAL PROJECT AUTH GUARD (LOOP-PROOF)
  * =========================================================
  *
  * PROJECT: Week 2
  * PROJECT_ID: week2
  *
  * GUARANTEES:
+ * - auth_token NEVER stays in URL
  * - Hard stop on login domain
- * - Redirect throttling (loop-proof)
- * - Logout-safe (no race conditions)
- * - Fail-open on backend / network errors
+ * - Redirect throttling
+ * - Logout always works
+ * - Fail-open on backend/network
  * - Safe for 50+ projects
  */
+
+/* =========================================================
+   🔐 AUTH TOKEN URL CLEANUP (MUST RUN FIRST)
+   ========================================================= */
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('auth_token');
+
+  if (token) {
+    console.log('[AuthGuard] Cleaning auth_token from URL');
+
+    // Persist token immediately
+    localStorage.setItem('auth_token', token);
+
+    // Remove token from URL
+    params.delete('auth_token');
+    const cleanUrl =
+      window.location.pathname +
+      (params.toString() ? `?${params.toString()}` : '') +
+      window.location.hash;
+
+    window.history.replaceState({}, document.title, cleanUrl);
+  }
+})();
 
 /* =========================================================
    PROJECT CONFIG (ONLY CHANGE THIS)
@@ -31,8 +56,7 @@ const LOGOUT_FLAG_KEY = 'logout_in_progress';
 const REDIRECT_COOLDOWN_MS = 3000;
 
 /* =========================================================
-   LOGOUT BYPASS (CRITICAL)
-   Must run BEFORE any auth logic
+   🚪 LOGOUT BYPASS (CRITICAL)
    ========================================================= */
 if (localStorage.getItem(LOGOUT_FLAG_KEY) === '1') {
   console.warn('[AuthGuard] Logout in progress — skipping guard');
@@ -60,49 +84,23 @@ window.__AUTH_GUARD_RAN__ = true;
 /* =========================================================
    MAIN AUTH FLOW
    ========================================================= */
-runAuthGuard();
-
-async function runAuthGuard() {
-  /* -------------------------------------------------------
-     TOKEN HANDOFF (URL → localStorage)
-     ------------------------------------------------------- */
-  const params = new URLSearchParams(window.location.search);
-  const urlToken = params.get('auth_token');
-
-  if (urlToken) {
-    console.log('[AuthGuard] Token handoff detected');
-    localStorage.setItem(AUTH_TOKEN_KEY, urlToken);
-
-    params.delete('auth_token');
-    const cleanUrl =
-      window.location.pathname +
-      (params.toString() ? `?${params.toString()}` : '') +
-      window.location.hash;
-
-    window.history.replaceState({}, document.title, cleanUrl);
-  }
+(async function runAuthGuard() {
 
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
-  /* -------------------------------------------------------
-     PUBLIC PROJECT
-     ------------------------------------------------------- */
+  // Public project
   if (!PROJECT_REQUIRES_AUTH) {
     allowApp();
     return;
   }
 
-  /* -------------------------------------------------------
-     NO TOKEN → LOGIN
-     ------------------------------------------------------- */
+  // No token → login
   if (!token) {
     redirectToLogin('no_token');
     return;
   }
 
-  /* -------------------------------------------------------
-     LOCAL DEV → SKIP VERIFY
-     ------------------------------------------------------- */
+  // Local dev → skip verification
   if (
     window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1'
@@ -112,27 +110,24 @@ async function runAuthGuard() {
     return;
   }
 
-  /* -------------------------------------------------------
-     VERIFY TOKEN WITH BACKEND
-     ------------------------------------------------------- */
+  // Verify token
   try {
     console.log('[AuthGuard] Verifying token...');
     const res = await fetch(`${API_BASE_URL}/auth/verify`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`,
         'X-Project-Id': PROJECT_ID
       }
     });
 
-    // Backend error → FAIL OPEN
+    // Backend failure → FAIL OPEN
     if (res.status >= 500) {
       console.warn('[AuthGuard] Backend error — FAIL OPEN');
       allowApp();
       return;
     }
 
-    // Explicit denial
     if (!res.ok) {
       console.warn('[AuthGuard] Token rejected');
       localStorage.removeItem(AUTH_TOKEN_KEY);
@@ -150,12 +145,12 @@ async function runAuthGuard() {
     redirectToLogin('invalid');
 
   } catch (err) {
-    // Network / CORS error → FAIL OPEN
+    // Network / CORS → FAIL OPEN
     console.warn('[AuthGuard] Network error — FAIL OPEN');
     console.error(err);
     allowApp();
   }
-}
+})();
 
 /* =========================================================
    REDIRECT (LOOP-SAFE)
@@ -186,18 +181,14 @@ function allowApp() {
 }
 
 /* =========================================================
-   LOGOUT (GLOBAL — GUARANTEED)
+   LOGOUT (GLOBAL — ALWAYS WORKS)
    ========================================================= */
 window.logout = function () {
   console.log('[AuthGuard] Logout initiated');
 
-  // Prevent auth guard from firing during navigation
   localStorage.setItem(LOGOUT_FLAG_KEY, '1');
-
-  // Clear auth data immediately
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(REDIRECT_TS_KEY);
 
-  // Hard redirect
   window.location.replace(`${LOGIN_PAGE_URL}?action=logout`);
 };
