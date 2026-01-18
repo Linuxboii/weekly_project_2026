@@ -1,289 +1,177 @@
 /**
- * ============================================
- * PROTECTED PROJECT PAGE - AUTH GUARD
- * ============================================
- * 
- * FOR USE ON: https://week2.avlokai.com (and other protected projects)
- * 
- * This script handles:
- * - Checking for auth token
- * - Redirecting to login if missing
- * - Verifying token with /auth/verify
- * - Showing the app after verification
- * 
- * SAFETY: This script will NOT run on login domain
+ * =========================================================
+ * CANONICAL PROJECT AUTH GUARD (NO REDIRECT LOOPS)
+ * =========================================================
+ *
+ * PROJECT: Week 2
+ * PROJECT_ID: week2
+ *
+ * GUARANTEES:
+ * - Hard stop on login domain
+ * - Redirect throttling (loop-proof)
+ * - Fail-open on backend / network errors
+ * - No environment guessing
+ * - Safe for 50+ projects
  */
 
-// ============================================
-// PROJECT METADATA (PROTECTED PAGES ONLY)
-// ============================================
+/* =========================================================
+   PROJECT CONFIG (ONLY CHANGE THIS)
+   ========================================================= */
 const PROJECT_ID = 'week2';
 const PROJECT_REQUIRES_AUTH = true;
 
-// ============================================
-// URL CONFIGURATION
-// Production custom domains - EDIT THESE if your domains are different
-// ============================================
-const CUSTOM_DOMAINS = {
-    login: 'login.avlokai.com',
-    week2: 'week2.avlokai.com'
-};
+/* =========================================================
+   GLOBAL CONSTANTS (DO NOT CHANGE)
+   ========================================================= */
+const API_BASE_URL = 'https://api.avlokai.com';
+const LOGIN_PAGE_URL = 'https://login.avlokai.com';
+const AUTH_TOKEN_KEY = 'auth_token';
+const REDIRECT_TS_KEY = 'last_redirect_ts';
+const REDIRECT_COOLDOWN_MS = 3000;
 
-// ============================================
-// DYNAMIC URL DETECTION
-// ============================================
-function getLoginUrl() {
-    const hostname = window.location.hostname;
-
-    // 1. Local development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3001/';
-    }
-
-    // 2. Custom domain (week2.avlokai.com) → go to login.avlokai.com
-    if (hostname === CUSTOM_DOMAINS.week2) {
-        return `https://${CUSTOM_DOMAINS.login}/`;
-    }
-
-    // 3. Vercel deployment → redirect to production custom domain
-    if (hostname.endsWith('.vercel.app')) {
-        console.log('[Week2] Vercel deployment detected, using production login URL');
-        return `https://${CUSTOM_DOMAINS.login}/`;
-    }
-
-    // 4. Fallback: relative URL
-    return '../login/';
+/* =========================================================
+   SAFETY: NEVER RUN ON LOGIN DOMAIN
+   ========================================================= */
+if (window.location.hostname === 'login.avlokai.com') {
+  console.warn('[AuthGuard] Login domain detected — guard disabled');
+  return;
 }
 
-// ============================================
-// HELPER: Check if we're on the login domain/page
-// ============================================
-function isLoginDomain() {
-    const hostname = window.location.hostname;
-    const pathname = window.location.pathname;
-
-    // Check if we're on the login custom domain
-    if (hostname === CUSTOM_DOMAINS.login) return true;
-
-    // Path-based check (monorepo style)
-    if (pathname.includes('/login/') || pathname.startsWith('/login')) return true;
-
-    return false;
+/* =========================================================
+   RUN-ONCE GUARANTEE
+   ========================================================= */
+if (window.__AUTH_GUARD_RAN__) {
+  console.warn('[AuthGuard] Already executed — stopping');
+  return;
 }
+window.__AUTH_GUARD_RAN__ = true;
 
-// ============================================
-// CONFIGURATION
-// ============================================
-const AUTH_GUARD_CONFIG = {
-    API_BASE_URL: 'https://api.avlokai.com',
-    AUTH_TOKEN_KEY: 'auth_token',
-    LOGIN_PAGE_URL: getLoginUrl(),
-};
-console.log('[Week2] Login URL:', AUTH_GUARD_CONFIG.LOGIN_PAGE_URL);
+/* =========================================================
+   TOKEN HANDOFF (URL → localStorage)
+   ========================================================= */
+(function handleTokenHandoff() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('auth_token');
 
-const THEME_KEY = 'theme';
+  if (!token) return;
 
-// ============================================
-// DOM ELEMENTS
-// ============================================
-const mainContainer = document.getElementById('main-container');
+  console.log('[AuthGuard] Token handoff detected');
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
 
-// ============================================
-// LOGIN PAGE DETECTION (SAFETY - REQUIRED)
-// ============================================
-const IS_LOGIN_PAGE = isLoginDomain();
+  params.delete('auth_token');
+  const cleanUrl =
+    window.location.pathname +
+    (params.toString() ? `?${params}` : '') +
+    window.location.hash;
 
-if (IS_LOGIN_PAGE) {
-    console.log('[AuthGuard] Login page detected — auth guard disabled');
-    // Exit immediately - do not run auth guard on login page
-} else {
-    // Run auth guard only on protected pages
-    initProtectedPage();
-}
+  window.history.replaceState({}, document.title, cleanUrl);
+})();
 
-// ============================================
-// THEME MANAGEMENT
-// ============================================
+/* =========================================================
+   MAIN AUTH FLOW
+   ========================================================= */
+(async function authFlow() {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
-function initTheme() {
-    const savedTheme = localStorage.getItem(THEME_KEY);
-    if (savedTheme) {
-        document.documentElement.setAttribute('data-theme', savedTheme);
-    } else {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-    }
-    updateThemeButton();
-}
+  // Public project
+  if (!PROJECT_REQUIRES_AUTH) {
+    allowApp();
+    return;
+  }
 
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem(THEME_KEY, newTheme);
-    updateThemeButton();
-}
+  // No token → login
+  if (!token) {
+    redirectToLogin('no_token');
+    return;
+  }
 
-function updateThemeButton() {
-    const themeToggle = document.getElementById('theme-toggle');
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-    if (themeToggle) {
-        themeToggle.textContent = currentTheme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode';
-    }
-}
+  // Local dev → skip verification
+  if (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ) {
+    console.log('[AuthGuard] DEV MODE — skipping verification');
+    allowApp();
+    return;
+  }
 
-// ============================================
-// AUTH GUARD CORE
-// ============================================
+  // Verify token with backend
+  try {
+    console.log('[AuthGuard] Verifying token...');
+    const res = await fetch(`${API_BASE_URL}/auth/verify`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'X-Project-Id': PROJECT_ID
+      }
+    });
 
-/**
- * Check for token passed via URL (cross-subdomain handoff)
- * Stores it in localStorage and cleans the URL
- */
-function checkUrlTokenHandoff() {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get('auth_token');
-
-    if (urlToken) {
-        // Store the token
-        localStorage.setItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY, urlToken);
-        console.log('[AuthGuard] Token received via URL handoff');
-
-        // Clean the URL (remove token parameter for security)
-        params.delete('auth_token');
-        const newUrl = params.toString()
-            ? `${window.location.pathname}?${params.toString()}`
-            : window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
-
-        return urlToken;
-    }
-    return null;
-}
-
-function redirectToLogin() {
-    // SAFETY: Never redirect if already on login page
-    if (window.location.hostname === 'login.avlokai.com') {
-        console.log('[AuthGuard] Already on login page - not redirecting');
-        return;
+    // Backend failure → FAIL OPEN
+    if (res.status >= 500) {
+      console.warn('[AuthGuard] Backend error — FAIL OPEN');
+      allowApp();
+      return;
     }
 
-    const currentUrl = window.location.href;
-    window.location.href = `${AUTH_GUARD_CONFIG.LOGIN_PAGE_URL}?redirect=${encodeURIComponent(currentUrl)}`;
-}
-
-function showMainApp() {
-    const authLoading = document.getElementById('auth-loading');
-    if (authLoading) {
-        authLoading.classList.add('hidden');
-    }
-    if (mainContainer) {
-        mainContainer.classList.remove('hidden');
-    }
-    document.title = 'Avlok AI - Week 2';
-}
-
-async function verifyToken(token) {
-    try {
-        const response = await fetch(`${AUTH_GUARD_CONFIG.API_BASE_URL}/auth/verify`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'X-Project-Id': PROJECT_ID,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        // Handle non-OK responses explicitly
-        if (!response.ok) {
-            const data = await response.json().catch(() => ({}));
-            return { valid: false, reason: data.reason || 'invalid_token' };
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error('[AuthGuard] Verification request failed:', error);
-        // CRITICAL (spec section 6): On network/CORS error, do NOT redirect
-        // Allow UI to load - backend APIs will enforce access on actual calls
-        console.warn('[AuthGuard] Network error - allowing UI to load (backend will enforce)');
-        return { valid: true, network_error: true };
-    }
-}
-
-async function initProtectedPage() {
-    // Initialize theme first
-    initTheme();
-
-    // Check for token handoff from login page (cross-subdomain)
-    // If we just received a fresh token, skip verification (it was just issued)
-    const freshToken = checkUrlTokenHandoff();
-
-    const token = localStorage.getItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
-
-    // No token - redirect to login
-    if (!token && PROJECT_REQUIRES_AUTH) {
-        console.log('[AuthGuard] No token - redirecting to login');
-        redirectToLogin();
-        return;
+    if (!res.ok) {
+      console.warn('[AuthGuard] Token rejected');
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      redirectToLogin('unauthorized');
+      return;
     }
 
-    // Public project - skip auth
-    if (!PROJECT_REQUIRES_AUTH) {
-        console.log('[AuthGuard] Public project - showing app');
-        showMainApp();
-        setupEventListeners();
-        return;
-    }
-
-    // Fresh token from login page - trust it, skip verification
-    if (freshToken) {
-        console.log('[AuthGuard] Fresh token from login - showing app');
-        showMainApp();
-        setupEventListeners();
-        return;
-    }
-
-    // Existing token - verify with backend
-    console.log('[AuthGuard] Verifying existing token...');
-    const result = await verifyToken(token);
-
+    const result = await res.json();
     if (result.valid) {
-        console.log('[AuthGuard] Token valid - showing app');
-        showMainApp();
-        setupEventListeners();
-    } else {
-        console.log('[AuthGuard] Token invalid - redirecting to login');
-        localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
-        redirectToLogin();
-    }
-}
-
-// ============================================
-// LOGOUT (GLOBAL)
-// ============================================
-
-function logout() {
-    localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
-    window.location.href = AUTH_GUARD_CONFIG.LOGIN_PAGE_URL;
-}
-
-window.logout = logout;
-
-// ============================================
-// EVENT LISTENERS
-// ============================================
-
-function setupEventListeners() {
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
+      allowApp();
+      return;
     }
 
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            logout();
-        });
-    }
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    redirectToLogin('invalid');
+
+  } catch (err) {
+    // Network / CORS → FAIL OPEN
+    console.warn('[AuthGuard] Network error — FAIL OPEN');
+    console.error(err);
+    allowApp();
+  }
+})();
+
+/* =========================================================
+   REDIRECT (LOOP-SAFE)
+   ========================================================= */
+function redirectToLogin(reason) {
+  const now = Date.now();
+  const last = Number(localStorage.getItem(REDIRECT_TS_KEY) || 0);
+
+  if (now - last < REDIRECT_COOLDOWN_MS) {
+    console.warn('[AuthGuard] Redirect suppressed (cooldown)');
+    return;
+  }
+
+  localStorage.setItem(REDIRECT_TS_KEY, String(now));
+
+  const currentUrl = window.location.href;
+  const loginUrl =
+    `${LOGIN_PAGE_URL}?redirect=${encodeURIComponent(currentUrl)}` +
+    (reason ? `&reason=${reason}` : '');
+
+  window.location.href = loginUrl;
 }
+
+/* =========================================================
+   SUCCESS HANDOFF
+   ========================================================= */
+function allowApp() {
+  console.log('[AuthGuard] Access granted');
+  window.dispatchEvent(new CustomEvent('authSuccess'));
+}
+
+/* =========================================================
+   LOGOUT (GLOBAL)
+   ========================================================= */
+window.logout = function () {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(REDIRECT_TS_KEY);
+  window.location.href = LOGIN_PAGE_URL;
+};
