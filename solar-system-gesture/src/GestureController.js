@@ -180,18 +180,14 @@ export class GestureController {
         // --- Priority 3: THUMBS DOWN (Fist with thumb clearly pointing down) ---
         if (fingersUp === 0 && isThumbDown) return 'THUMBS_DOWN';
 
-        // --- Priority 4: PINCH (Index finger extended, others folded) ---
-        // More lenient: check if index is more extended than others
-        const indexDist = this.getDistance(landmarks[8], wrist);
-        const middleDist = this.getDistance(landmarks[12], wrist);
-        const indexMoreExtended = indexDist > middleDist * 1.15;
+        // --- Priority 4: FIST (All fingers DOWN) - Check BEFORE pinch to prevent confusion ---
+        if (fingersUp === 0) return 'FIST';
 
-        if ((index || indexMoreExtended) && !middle && !ring && !pinky) {
+        // --- Priority 5: PINCH (ONLY when index is clearly extended, others folded) ---
+        // Strict: requires index to be detected as extended by finger detection
+        if (index && !middle && !ring && !pinky) {
             return 'PINCH';
         }
-
-        // --- Priority 5: FIST (All fingers DOWN) ---
-        if (fingersUp === 0) return 'FIST';
 
         // --- Priority 6: Rock / Metal (Index + Pinky Up) ---
         if (index && !middle && !ring && pinky) return 'ROCK';
