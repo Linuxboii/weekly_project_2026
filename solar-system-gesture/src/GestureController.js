@@ -1,7 +1,8 @@
-import * as handsModule from '@mediapipe/hands';
-const Hands = handsModule.Hands;
-const HAND_CONNECTIONS = handsModule.HAND_CONNECTIONS;
-import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
+// MediaPipe is loaded via CDN in index.html - access as window globals
+const Hands = window.Hands;
+const HAND_CONNECTIONS = window.HAND_CONNECTIONS;
+const drawConnectors = window.drawConnectors;
+const drawLandmarks = window.drawLandmarks;
 
 export class GestureController {
     constructor(callbacks) {
@@ -141,9 +142,8 @@ export class GestureController {
     // --- Core Logic: Pose Detection ---
     detectPose(landmarks) {
         // Finger States (Extended vs Folded)
-        // 0: Thumb, 1: Index, 2: Middle, 3: Ring, 4: Pinky
         const fingers = [
-            !this.isFingerFolded(landmarks, 4),  // Thumb (Unreliable)
+            !this.isFingerFolded(landmarks, 4),  // Thumb
             !this.isFingerFolded(landmarks, 8),  // Index
             !this.isFingerFolded(landmarks, 12), // Middle
             !this.isFingerFolded(landmarks, 16), // Ring
@@ -151,46 +151,60 @@ export class GestureController {
         ];
 
         const [thumb, index, middle, ring, pinky] = fingers;
-        // Count non-thumb fingers up
         const fingersUp = [index, middle, ring, pinky].filter(f => f).length;
 
         const pinchDist = this.getDistance(landmarks[4], landmarks[8]);
-        const isTouching = pinchDist < 0.05;
+        const isTouching = pinchDist < 0.04;
+
+        // Thumb-specific detection using explicit positions
+        const thumbTip = landmarks[4];
+        const thumbMCP = landmarks[2];
+        const wrist = landmarks[0];
+        const indexMCP = landmarks[5]; // Base of index finger
+
+        // STRICT thumbs up: thumb tip must be WELL above wrist AND above index finger base
+        // In MediaPipe, Y increases downward (0 = top, 1 = bottom)
+        const thumbWellAboveWrist = thumbTip.y < wrist.y - 0.12; // Very strict threshold
+        const thumbAboveIndexBase = thumbTip.y < indexMCP.y - 0.05;
+        const isThumbUp = thumbWellAboveWrist && thumbAboveIndexBase;
+
+        // Thumbs down: thumb clearly below wrist
+        const isThumbDown = thumbTip.y > wrist.y + 0.08 && thumbTip.y > thumbMCP.y + 0.05;
 
         // --- Priority 1: Open Palm (All 4 fingers Up) ---
-        // Relaxed: Ignore thumb
         if (fingersUp === 4) return 'PALM';
 
-        // --- Priority 2: Fist (No fingers Up) ---
-        if (fingersUp === 0) {
-            const thumbTip = landmarks[4];
-            const thumbIP = landmarks[3];
+        // --- Priority 2: THUMBS UP (Fist with thumb VERY clearly pointing up) ---
+        if (fingersUp === 0 && isThumbUp) return 'THUMBS_UP';
 
-            // Check Thumb for Special Fist Variations
-            // Only strictly separated if Thumb is VERY clearly up or down
-            if (thumbTip.y < thumbIP.y - 0.05) return 'THUMBS_UP';
-            if (thumbTip.y > thumbIP.y + 0.05) return 'THUMBS_DOWN';
+        // --- Priority 3: THUMBS DOWN (Fist with thumb clearly pointing down) ---
+        if (fingersUp === 0 && isThumbDown) return 'THUMBS_DOWN';
 
-            return 'FIST';
-        }
+        // --- Priority 4: PINCH (Index finger extended, others folded) ---
+        // More lenient: check if index is more extended than others
+        const indexDist = this.getDistance(landmarks[8], wrist);
+        const middleDist = this.getDistance(landmarks[12], wrist);
+        const indexMoreExtended = indexDist > middleDist * 1.15;
 
-        // --- Priority 3: Rock / Metal (Index + Pinky Up) ---
-        // Middle + Ring MUST be down. Thumb ignored.
-        if (index && !middle && !ring && pinky) return 'ROCK';
-
-        // --- Priority 4: Peace (Index + Middle Up) ---
-        // Ring + Pinky MUST be down. Thumb ignored.
-        if (index && middle && !ring && !pinky) return 'PEACE';
-
-        // --- Priority 5: OK Sign (Thumb+Index Touching) ---
-        // At least one other finger UP to distinguish from Pinch/Fist
-        if (isTouching && (middle || ring || pinky)) return 'OK';
-
-        // --- Priority 6: Pinch / Zoom (Index Up, Thumb Up/Close) ---
-        // If Index Up and others Down -> Pinch/Point
-        if (index && !middle && !ring && !pinky) {
+        if ((index || indexMoreExtended) && !middle && !ring && !pinky) {
             return 'PINCH';
         }
+
+        // --- Priority 5: FIST (All fingers DOWN) ---
+        if (fingersUp === 0) return 'FIST';
+
+        // --- Priority 6: Rock / Metal (Index + Pinky Up) ---
+        if (index && !middle && !ring && pinky) return 'ROCK';
+
+        // --- Priority 7: Peace (Index + Middle Up) ---
+        if (index && middle && !ring && !pinky) return 'PEACE';
+
+        // --- Priority 8: OK Sign (Thumb+Index Touching, 2+ other fingers UP) ---
+        const otherFingersUp = (middle ? 1 : 0) + (ring ? 1 : 0) + (pinky ? 1 : 0);
+        if (isTouching && otherFingersUp >= 2) return 'OK';
+
+        // Fallback: loose gestures
+        if (fingersUp === 1 && !index) return 'FIST';
 
         return 'UNKNOWN';
     }
@@ -227,7 +241,8 @@ export class GestureController {
                 if (this.lastDragPos) {
                     const dx = currentDragPos.x - this.lastDragPos.x;
                     const dy = currentDragPos.y - this.lastDragPos.y;
-                    if (this.callbacks.onDrag) this.callbacks.onDrag(dx * 4, dy * 4);
+                    // Increased sensitivity from 4 to 12 for more responsive drag
+                    if (this.callbacks.onDrag) this.callbacks.onDrag(dx * 12, dy * 12);
                 }
                 this.lastDragPos = currentDragPos;
                 break;
@@ -241,17 +256,15 @@ export class GestureController {
                 break;
 
             case 'PEACE':
-                if (this.cooldowns.toggle === 0) {
-                    if (this.callbacks.onToggleHelp) this.callbacks.onToggleHelp();
-                    this.cooldowns.toggle = 30;
-                }
+                // Show help while peace sign is held
+                if (this.callbacks.onShowHelp) this.callbacks.onShowHelp();
+                this.helpShowing = true;
                 break;
 
             case 'ROCK':
-                if (this.cooldowns.toggle === 0) { // Use toggle cooldown for reset? or separate? Using general cooldown.
+                if (this.cooldowns.toggle === 0) {
                     if (this.callbacks.onReset) this.callbacks.onReset();
-                    this.consoleLog('Action: Reset');
-                    this.cooldowns.toggle = 30; // 1s cooldown
+                    this.cooldowns.toggle = 30;
                 }
                 break;
 
@@ -270,6 +283,11 @@ export class GestureController {
                 break;
 
             default:
+                // Hide help when peace sign is no longer shown
+                if (this.helpShowing) {
+                    if (this.callbacks.onHideHelp) this.callbacks.onHideHelp();
+                    this.helpShowing = false;
+                }
                 this.lastDragPos = null;
                 this.lastSwipePos = null;
         }

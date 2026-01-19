@@ -119,6 +119,11 @@ export class SolarSystem {
         if (this.isLocked) {
             this.isLocked = false;
             this.lockedPlanet = null;
+            // Reset planet rotation targets
+            this.targetPlanetRotationY = 0;
+            this.targetPlanetRotationX = 0;
+            this.currentPlanetRotationY = 0;
+            this.currentPlanetRotationX = 0;
         } else {
             // Lock to current active or default to Earth
             if (this.activePlanetIndex !== -1) {
@@ -136,10 +141,24 @@ export class SolarSystem {
     }
 
     handleDrag(deltaX, deltaY) {
-        if (this.isLocked) return;
-        // BOOSTED SENSITIVITY from 0.005 to 0.02
-        this.targetRotationY -= deltaX * 0.02;
-        this.targetRotationX -= deltaY * 0.02;
+        if (this.isLocked && this.lockedPlanet) {
+            // When locked to a planet, rotate that planet (and its moons via the pivot)
+            if (!this.targetPlanetRotationY) this.targetPlanetRotationY = 0;
+            if (!this.targetPlanetRotationX) this.targetPlanetRotationX = 0;
+
+            // Inverted left/right: -= for Y (left/right), += for X (up/down)
+            this.targetPlanetRotationY -= deltaX * 0.08;
+            this.targetPlanetRotationX += deltaY * 0.08;
+            // Clamp X rotation
+            this.targetPlanetRotationX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.targetPlanetRotationX));
+        } else {
+            // When unlocked, rotate the entire solar system
+            // Inverted left/right: -= for Y rotation
+            this.targetRotationY -= deltaX * 0.08;
+            this.targetRotationX += deltaY * 0.08;
+            // Clamp X rotation to prevent flipping
+            this.targetRotationX = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, this.targetRotationX));
+        }
     }
 
     spawnComet() {
@@ -174,6 +193,11 @@ export class SolarSystem {
         this.timeScale = 1.0;
         this.hidePopups();
         this.activePlanetIndex = -1;
+        // Reset planet rotation targets
+        this.targetPlanetRotationY = 0;
+        this.targetPlanetRotationX = 0;
+        this.currentPlanetRotationY = 0;
+        this.currentPlanetRotationX = 0;
         this.reset();
     }
 
@@ -185,6 +209,12 @@ export class SolarSystem {
 
     animate() {
         requestAnimationFrame(this.animate.bind(this));
+
+        // 0. Update Star Twinkling/Shimmer
+        if (this.starMaterial) {
+            this.starMaterial.uniforms.time.value += 0.016; // ~60fps
+            this.starMaterial.uniforms.cameraPos.value.copy(this.camera.position);
+        }
 
         // 1. Planet Orbits
         if (!this.isPaused) {
@@ -229,6 +259,20 @@ export class SolarSystem {
             const offset = 10 + this.lockedPlanet.data.size * 5;
             targetPos = new THREE.Vector3(vector.x, vector.y + 5, vector.z + offset);
 
+            // Smooth planet rotation when dragging while locked
+            if (this.targetPlanetRotationY !== undefined) {
+                if (!this.currentPlanetRotationY) this.currentPlanetRotationY = 0;
+                if (!this.currentPlanetRotationX) this.currentPlanetRotationX = 0;
+
+                // Smooth interpolation for fluid feel
+                this.currentPlanetRotationY += (this.targetPlanetRotationY - this.currentPlanetRotationY) * 0.08;
+                this.currentPlanetRotationX += (this.targetPlanetRotationX - this.currentPlanetRotationX) * 0.08;
+
+                // Apply to the planet group (affects planet + moons)
+                this.lockedPlanet.group.rotation.y = this.currentPlanetRotationY;
+                this.lockedPlanet.group.rotation.x = this.currentPlanetRotationX;
+            }
+
             this.updatePopupPosition(this.lockedPlanet);
 
         } else if (this.isPaused && this.activePlanetIndex !== -1) {
@@ -266,21 +310,105 @@ export class SolarSystem {
     // --- Creations ---
 
     createStars() {
-        const geometry = new THREE.BufferGeometry();
-        const vertices = [];
-        for (let i = 0; i < 3000; i++) {
-            vertices.push(
-                (Math.random() - 0.5) * 400,
-                (Math.random() - 0.5) * 400,
-                (Math.random() - 0.5) * 400
-            );
-        }
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-        const material = new THREE.PointsMaterial({ color: 0xffffff, size: 0.5, transparent: true, opacity: 0.8, sizeAttenuation: true });
-        const stars = new THREE.Points(geometry, material);
+        // Create circular star texture using canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
 
-        // Add stars to Scene (not Group) to stay Grid Locked
-        this.scene.add(stars);
+        // Draw a soft circular glow
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(200, 220, 255, 0.3)');
+        gradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+
+        const starTexture = new THREE.CanvasTexture(canvas);
+
+        // Create star geometry with positions and custom attributes
+        const starCount = 4000;
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const sizes = [];
+        const twinkleSpeeds = [];
+        const baseOpacities = [];
+
+        for (let i = 0; i < starCount; i++) {
+            positions.push(
+                (Math.random() - 0.5) * 500,
+                (Math.random() - 0.5) * 500,
+                (Math.random() - 0.5) * 500
+            );
+            // Varying sizes for depth
+            sizes.push(0.3 + Math.random() * 1.2);
+            // Random twinkle speed
+            twinkleSpeeds.push(0.5 + Math.random() * 2);
+            // Base opacity
+            baseOpacities.push(0.4 + Math.random() * 0.6);
+        }
+
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+        geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+        geometry.setAttribute('twinkleSpeed', new THREE.Float32BufferAttribute(twinkleSpeeds, 1));
+        geometry.setAttribute('baseOpacity', new THREE.Float32BufferAttribute(baseOpacities, 1));
+
+        // Custom shader for twinkling and shimmer
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                starTexture: { value: starTexture },
+                cameraPos: { value: new THREE.Vector3() }
+            },
+            vertexShader: `
+                attribute float size;
+                attribute float twinkleSpeed;
+                attribute float baseOpacity;
+                varying float vOpacity;
+                varying float vTwinkle;
+                uniform float time;
+                uniform vec3 cameraPos;
+                
+                void main() {
+                    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                    
+                    // Distance to camera for shimmer effect
+                    float dist = length(position - cameraPos);
+                    float shimmer = smoothstep(50.0, 10.0, dist) * 0.5;
+                    
+                    // Twinkling based on time and position
+                    float twinkle = sin(time * twinkleSpeed + position.x * 0.1 + position.y * 0.1) * 0.5 + 0.5;
+                    vTwinkle = twinkle;
+                    vOpacity = baseOpacity * (0.5 + twinkle * 0.5) + shimmer;
+                    
+                    // Size variation with distance
+                    gl_PointSize = size * (200.0 / -mvPosition.z) * (0.8 + twinkle * 0.4);
+                    gl_Position = projectionMatrix * mvPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform sampler2D starTexture;
+                varying float vOpacity;
+                varying float vTwinkle;
+                
+                void main() {
+                    vec4 texColor = texture2D(starTexture, gl_PointCoord);
+                    
+                    // Add slight color variation based on twinkle
+                    vec3 color = mix(vec3(0.8, 0.9, 1.0), vec3(1.0, 1.0, 0.9), vTwinkle);
+                    
+                    gl_FragColor = vec4(color, texColor.a * vOpacity);
+                }
+            `,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        this.stars = new THREE.Points(geometry, material);
+        this.starMaterial = material;
+        this.scene.add(this.stars);
     }
 
     createSun() {

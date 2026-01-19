@@ -2,6 +2,19 @@ import './style.css'
 import { SolarSystem } from './SolarSystem.js';
 import { GestureController } from './GestureController.js';
 
+// Suppress MediaPipe WASM internal logs (not errors, just noisy info logs)
+const originalLog = console.log;
+const originalWarn = console.warn;
+const mediapipeLogFilter = (msg) => {
+    if (typeof msg === 'string') {
+        return msg.includes('I0000') || msg.includes('W0000') ||
+            msg.includes('gl_context') || msg.includes('Successfully created a WebGL');
+    }
+    return false;
+};
+console.log = (...args) => { if (!mediapipeLogFilter(args[0])) originalLog.apply(console, args); };
+console.warn = (...args) => { if (!mediapipeLogFilter(args[0])) originalWarn.apply(console, args); };
+
 console.log('Solar System Gesture App Initialized');
 
 async function init() {
@@ -12,44 +25,38 @@ async function init() {
     // 2. Initialize Gesture Controller with callbacks
     const gestureController = new GestureController({
         onZoom: (scale) => {
-            // console.log('Zoom:', scale); // Too noisy
             solarSystem.setZoom(scale);
         },
         onDrag: (dx, dy) => {
-            // console.log('Drag:', dx, dy);
             solarSystem.handleDrag(dx, dy);
         },
         onReset: () => {
-            console.log('Action: RESET');
             solarSystem.resumeOrbit();
         },
         onSpeedUp: () => {
-            console.log('Action: SPEED UP');
             solarSystem.setTimeScale(5.0);
         },
         onRewind: () => {
-            console.log('Action: REWIND');
             solarSystem.setTimeScale(-2.0);
         },
-        onToggleHelp: () => {
-            console.log('Action: HELP');
+        onShowHelp: () => {
             const overlay = document.getElementById('gesture-help-overlay');
-            if (overlay) overlay.style.display = overlay.style.display === 'none' ? 'block' : 'none';
+            if (overlay) overlay.style.display = 'block';
+        },
+        onHideHelp: () => {
+            const overlay = document.getElementById('gesture-help-overlay');
+            if (overlay) overlay.style.display = 'none';
         },
         onLock: () => {
-            console.log('Action: LOCK');
             solarSystem.toggleLock();
         },
         onComet: () => {
-            console.log('Action: COMET');
             solarSystem.spawnComet();
         },
         onSwipeLeft: () => {
-            console.log('Action: SWIPE LEFT');
             solarSystem.selectPreviousPlanet();
         },
         onSwipeRight: () => {
-            console.log('Action: SWIPE RIGHT');
             solarSystem.selectNextPlanet();
         }
     });
