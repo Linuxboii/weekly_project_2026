@@ -1,4 +1,6 @@
-import { Hands } from '@mediapipe/hands';
+import * as handsModule from '@mediapipe/hands';
+const Hands = handsModule.Hands;
+const HAND_CONNECTIONS = handsModule.HAND_CONNECTIONS;
 import { drawConnectors, drawLandmarks } from '@mediapipe/drawing_utils';
 
 export class GestureController {
@@ -111,7 +113,7 @@ export class GestureController {
 
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
             const landmarks = results.multiHandLandmarks[0];
-            drawConnectors(this.canvasCtx, landmarks, Hands.HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 1 });
+            drawConnectors(this.canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 1 });
             drawLandmarks(this.canvasCtx, landmarks, { color: '#FF0000', lineWidth: 0.5, radius: 2 });
 
             const gesture = this.detectPose(landmarks);
