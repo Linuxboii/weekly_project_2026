@@ -208,6 +208,12 @@ export class GestureController {
     handleGesture(gesture, landmarks) {
         this.updateFeedback(gesture);
 
+        // Hide help overlay if we're no longer showing PEACE gesture
+        if (gesture !== 'PEACE' && this.helpShowing) {
+            if (this.callbacks.onHideHelp) this.callbacks.onHideHelp();
+            this.helpShowing = false;
+        }
+
         switch (gesture) {
             case 'PALM':
                 const palm = landmarks[9];
@@ -279,11 +285,6 @@ export class GestureController {
                 break;
 
             default:
-                // Hide help when peace sign is no longer shown
-                if (this.helpShowing) {
-                    if (this.callbacks.onHideHelp) this.callbacks.onHideHelp();
-                    this.helpShowing = false;
-                }
                 this.lastDragPos = null;
                 this.lastSwipePos = null;
         }

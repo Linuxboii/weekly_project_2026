@@ -17,13 +17,18 @@ export class SolarSystem {
 
         this.container.appendChild(this.renderer.domElement);
 
-        // Lighting
-        this.ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+        // Lighting - Brighter ambient for visibility
+        this.ambientLight = new THREE.AmbientLight(0x606080, 2.5);
         this.scene.add(this.ambientLight);
 
-        this.sunLight = new THREE.PointLight(0xffaa00, 3, 300);
+        this.sunLight = new THREE.PointLight(0xffcc44, 5, 400);
         this.sunLight.position.set(0, 0, 0);
         this.scene.add(this.sunLight);
+
+        // Additional fill light for better planet visibility
+        this.fillLight = new THREE.DirectionalLight(0x4466aa, 0.8);
+        this.fillLight.position.set(-50, 30, 50);
+        this.scene.add(this.fillLight);
 
         // State
         this.planets = [];
@@ -43,8 +48,8 @@ export class SolarSystem {
         this.targetRotationX = 0;
         this.currentRotationY = 0;
         this.currentRotationX = 0;
-        this.targetZoom = 40;
-        this.currentZoom = 40;
+        this.targetZoom = 80;
+        this.currentZoom = 80;
 
         // Group to hold everything
         this.solarSystemGroup = new THREE.Group();
@@ -72,8 +77,9 @@ export class SolarSystem {
         this.createSun();
         this.createPlanets();
 
+        // Bird's eye view - camera positioned high and far for full system visibility
         this.camera.position.z = this.currentZoom;
-        this.camera.position.y = 10;
+        this.camera.position.y = 50;
         this.camera.lookAt(0, 0, 0);
     }
 
@@ -367,6 +373,7 @@ export class SolarSystem {
                 attribute float baseOpacity;
                 varying float vOpacity;
                 varying float vTwinkle;
+                varying float vSparkle;
                 uniform float time;
                 uniform vec3 cameraPos;
                 
@@ -375,15 +382,26 @@ export class SolarSystem {
                     
                     // Distance to camera for shimmer effect
                     float dist = length(position - cameraPos);
-                    float shimmer = smoothstep(50.0, 10.0, dist) * 0.5;
+                    float shimmer = smoothstep(80.0, 15.0, dist) * 0.6;
                     
-                    // Twinkling based on time and position
-                    float twinkle = sin(time * twinkleSpeed + position.x * 0.1 + position.y * 0.1) * 0.5 + 0.5;
+                    // Multi-frequency twinkling for sparkle effect
+                    float twinkle1 = sin(time * twinkleSpeed + position.x * 0.1 + position.y * 0.1) * 0.5 + 0.5;
+                    float twinkle2 = sin(time * twinkleSpeed * 2.3 + position.z * 0.15) * 0.5 + 0.5;
+                    float twinkle3 = sin(time * twinkleSpeed * 0.7 + position.x * 0.2 - position.y * 0.1) * 0.5 + 0.5;
+                    
+                    // Combined twinkle with occasional bright sparkle
+                    float twinkle = twinkle1 * 0.4 + twinkle2 * 0.3 + twinkle3 * 0.3;
+                    
+                    // Sparkle burst - occasional bright flash
+                    float sparkleBurst = pow(twinkle1 * twinkle2, 3.0) * 2.0;
+                    vSparkle = sparkleBurst;
+                    
                     vTwinkle = twinkle;
-                    vOpacity = baseOpacity * (0.5 + twinkle * 0.5) + shimmer;
+                    vOpacity = baseOpacity * (0.6 + twinkle * 0.5 + sparkleBurst * 0.5) + shimmer;
                     
-                    // Size variation with distance
-                    gl_PointSize = size * (200.0 / -mvPosition.z) * (0.8 + twinkle * 0.4);
+                    // Size variation with distance and sparkle
+                    float sparkleSize = 1.0 + sparkleBurst * 0.8;
+                    gl_PointSize = size * (250.0 / -mvPosition.z) * (0.8 + twinkle * 0.4) * sparkleSize;
                     gl_Position = projectionMatrix * mvPosition;
                 }
             `,
@@ -391,14 +409,23 @@ export class SolarSystem {
                 uniform sampler2D starTexture;
                 varying float vOpacity;
                 varying float vTwinkle;
+                varying float vSparkle;
                 
                 void main() {
                     vec4 texColor = texture2D(starTexture, gl_PointCoord);
                     
-                    // Add slight color variation based on twinkle
-                    vec3 color = mix(vec3(0.8, 0.9, 1.0), vec3(1.0, 1.0, 0.9), vTwinkle);
+                    // Color variation - warmer during sparkle, cooler otherwise
+                    vec3 coolColor = vec3(0.7, 0.85, 1.0);
+                    vec3 warmColor = vec3(1.0, 0.95, 0.85);
+                    vec3 sparkleColor = vec3(1.0, 1.0, 1.0);
                     
-                    gl_FragColor = vec4(color, texColor.a * vOpacity);
+                    vec3 baseColor = mix(coolColor, warmColor, vTwinkle);
+                    vec3 color = mix(baseColor, sparkleColor, vSparkle * 0.5);
+                    
+                    // Boost brightness
+                    float brightness = 1.3 + vSparkle * 0.4;
+                    
+                    gl_FragColor = vec4(color * brightness, texColor.a * vOpacity);
                 }
             `,
             transparent: true,
