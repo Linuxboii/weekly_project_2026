@@ -6,32 +6,47 @@ import CompletedTasks from "./CompletedTasks";
 import Button from "./ui/Button";
 import { api } from "../lib/api";
 
-const Dashboard = () => {
+const Dashboard = ({ currentUser }) => {
     const [goals, setGoals] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [error, setError] = useState(null);
 
     const fetchGoals = async () => {
+        setIsLoading(true);
         try {
-            const data = await api.getGoals();
-            setGoals(data);
+            // Use hydrated endpoint - returns only current user's goals with username
+            const data = await api.getHydratedGoalsMe();
+            const allGoals = Array.isArray(data) ? data : [];
+            setGoals(allGoals);
+            setError(null);
         } catch (err) {
             console.error("Failed to fetch goals:", err);
-            setError("Failed to load goals.");
+            if (err.response?.status === 401) {
+                // Handled by global interceptor - redirect to login
+                return;
+            } else if (err.response?.status === 403) {
+                setError("You don't have permission to view these goals.");
+            } else if (err.response?.status >= 500) {
+                setError("Server error. Please try again later.");
+            } else {
+                setError("Failed to load goals.");
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchGoals();
-    }, []);
+        if (currentUser) {
+            fetchGoals();
+        }
+    }, [currentUser]);
 
     const handleAddGoal = async (newGoalData) => {
         try {
             await api.createGoal(newGoalData.title, newGoalData.description);
-            await fetchGoals(); // Refresh list
+            await fetchGoals();
             setIsModalOpen(false);
         } catch (err) {
             console.error("Failed to create goal:", err);
@@ -42,25 +57,18 @@ const Dashboard = () => {
     const handleCompleteGoal = async (goalId) => {
         try {
             await api.completeGoal(goalId);
-            await fetchGoals(); // Refresh active list
-            // Optionally trigger refresh of CompletedTasks if we lifted state, 
-            // but for now page refresh or separate fetch handles it.
-            // Ideally we'd signal CompletedTasks to reload.
-            window.location.reload(); // Simple brute force for now to sync both
+            await fetchGoals();
         } catch (err) {
             console.error("Failed to complete goal:", err);
-            if (err.response && err.response.status === 403) {
-                alert("You can only complete goals you created.");
+            if (err.response?.status === 403) {
+                alert("You don't have permission to complete this goal.");
             } else {
                 alert("Failed to complete goal.");
             }
         }
     };
 
-    // TODO: Implement Update Goal. GoalCard needs an Edit button.
-    // tailored for next steps.
-
-    if (isLoading) {
+    if (isLoading || !currentUser) {
         return <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
 
@@ -71,13 +79,19 @@ const Dashboard = () => {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
                     <p className="text-muted-foreground">
-                        You have {goals.length} active goals.
+                        You have {goals.length} active goal{goals.length !== 1 ? 's' : ''}.
                     </p>
                 </div>
                 <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
                     <Plus className="mr-2 h-4 w-4" /> Add Goal
                 </Button>
             </div>
+
+            {error && (
+                <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+                    {error}
+                </div>
+            )}
 
             {/* Active Goals Grid */}
             <section>
@@ -87,12 +101,14 @@ const Dashboard = () => {
                             <GoalCard
                                 key={goal.id}
                                 goal={goal}
+                                isOwner={true}
+                                username={goal.username || currentUser?.username || "You"}
                                 onToggle={() => handleCompleteGoal(goal.id)}
                             />
                         ))
                     ) : (
                         <div className="col-span-full text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground">
-                            No active goals. Add one to get started!
+                            No active goals found. Click "Add Goal" to create one!
                         </div>
                     )}
                 </div>

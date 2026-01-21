@@ -18,7 +18,10 @@ export default function LoginForm({ onLoginSuccess, onSwitchToSignup }) {
             const data = await api.login(email, password);
             if (data.token) {
                 localStorage.setItem('auth_token', data.token);
-                onLoginSuccess();
+                // Pass the full data object (which may contain user info like { user: { id, email, role } }) 
+                // or just the decoded token payload if provided.
+                // We pass 'data' assuming api.login returns the relevant user info along with the token.
+                onLoginSuccess(data);
             } else {
                 throw new Error('No token received');
             }
