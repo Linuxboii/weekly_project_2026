@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Users, LayoutDashboard, LogOut, Settings } from "lucide-react";
 import Dashboard from "./components/Dashboard";
 import LoginForm from "./components/LoginForm";
-// Signup removed as per requirements (Login only)
+import SignupForm from "./components/SignupForm";
 import ChangePasswordForm from "./components/ChangePasswordForm"; // Keeping for Settings tab? Or remove? User didn't ask for it.
 // The user prompt says "There are no owner or admin roles... Authentication uses Bearer tokens".
 // Previous conversation implemented ChangePassword. I'll keep it if it adheres to API (POST /auth/change_password).
@@ -113,6 +113,7 @@ const Navbar = ({ activeTab, setActiveTab, onLogout }) => (
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [authView, setAuthView] = useState("login"); // 'login' | 'signup'
     const [activeTab, setActiveTab] = useState("dashboard");
 
     useEffect(() => {
@@ -130,6 +131,7 @@ function App() {
     const handleLogout = () => {
         api.logout();
         setIsAuthenticated(false);
+        setAuthView("login");
         setActiveTab("dashboard");
     };
 
@@ -143,10 +145,14 @@ function App() {
                         </div>
                         <p className="text-muted-foreground">Master your habits, master your life.</p>
                     </div>
-                    <LoginForm
-                        onLoginSuccess={handleLoginSuccess}
-                        onSwitchToSignup={() => alert("Signup is disabled.")}
-                    />
+                    {authView === "login" ? (
+                        <LoginForm
+                            onLoginSuccess={handleLoginSuccess}
+                            onSwitchToSignup={() => setAuthView("signup")}
+                        />
+                    ) : (
+                        <SignupForm onSwitchToLogin={() => setAuthView("login")} />
+                    )}
                 </div>
             </div>
         );

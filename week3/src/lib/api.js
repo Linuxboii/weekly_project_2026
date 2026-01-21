@@ -41,6 +41,17 @@ export const api = {
         return response.data; // Expected { token: "..." }
     },
 
+    async signup(email, password) {
+        // Strict adherence: Only email and password. No role.
+        try {
+            const response = await apiClient.post('/auth/add_user', { email, password });
+            return response.data;
+        } catch (error) {
+            // Re-throw to be handled by component, but ensure error.response is preserved
+            throw error;
+        }
+    },
+
     async getGoals() {
         const response = await apiClient.get('/goals');
         return response.data;
