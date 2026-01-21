@@ -18,3 +18,4 @@ __pycache__/
 directives/
 execution/
 node_modules/
+.vscode
