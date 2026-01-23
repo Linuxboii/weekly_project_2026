@@ -17,6 +17,36 @@ const PROJECTS = [
         </svg>`,
         status: 'Active',
     },
+    {
+        id: 'week2',
+        title: 'Week 2',
+        description: 'This is Week 2',
+        url: '#', // Current page
+        icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>`,
+        status: 'Current',
+    },
+    {
+        id: 'week3',
+        title: 'Week 3',
+        description: 'Goal & Habit Tracker with insights',
+        url: 'https://tracker.avlokai.com/',
+        icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20V10"/>
+            <path d="M18 20V4"/>
+            <path d="M6 20v-4"/>
+        </svg>`,
+        status: 'Active',
+    },
 ];
 
 // Expose projects list globally for solar system modal

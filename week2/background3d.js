@@ -754,7 +754,8 @@ function openProjectsModal() {
     // Populate with projects (using window.projectsList if available from app.js)
     const projectsContainer = modal.querySelector('.modal-projects');
     const projects = window.projectsList || [
-        { id: 'week1', name: 'Week 1', description: 'File uploader with interactive particle background', icon: '📁', url: 'https://week1.avlokai.com/' }
+        { id: 'week1', name: 'Week 1', description: 'File uploader with interactive particle background', icon: '📁', url: 'https://week1.avlokai.com/' },
+        { id: 'week3', name: 'Week 3', description: 'Goal & Habit Tracker with insights', icon: '📊', url: 'https://tracker.avlokai.com/' }
     ];
 
     // Helper to add token to URL
