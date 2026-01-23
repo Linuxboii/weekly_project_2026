@@ -75,17 +75,18 @@ export const api = {
         return response.data;
     },
 
-    async createGoal(title, description) {
-        // Description is optional, but API expects it if provided
+    async createGoal(title, description, deadline) {
+        // Description and deadline are optional
         const payload = { title };
         if (description) payload.description = description;
+        if (deadline) payload.deadline = deadline;
 
         const response = await apiClient.post('/goals', payload);
         return response.data;
     },
 
     async updateGoal(goalId, data) {
-        // data: { title: string, description: string(optional) }
+        // data: { title: string, description?: string, deadline?: string }
         const response = await apiClient.put(`/goals/${goalId}`, data);
         return response.data;
     },

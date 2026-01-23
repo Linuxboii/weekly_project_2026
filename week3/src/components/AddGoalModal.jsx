@@ -1,30 +1,48 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "./ui/Button";
 
 const AddGoalModal = ({ isOpen, onClose, onAdd, goalToEdit = null }) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [deadline, setDeadline] = useState("");
 
     useEffect(() => {
         if (goalToEdit) {
             setTitle(goalToEdit.title);
             setDescription(goalToEdit.description || "");
+            // Format deadline for date input (YYYY-MM-DD)
+            if (goalToEdit.deadline) {
+                const date = new Date(goalToEdit.deadline);
+                setDeadline(date.toISOString().split('T')[0]);
+            } else {
+                setDeadline("");
+            }
         } else {
             setTitle("");
             setDescription("");
+            setDeadline("");
         }
     }, [goalToEdit, isOpen]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onAdd({ title, description, id: goalToEdit?.id });
+        onAdd({
+            title,
+            description,
+            deadline: deadline || null,
+            id: goalToEdit?.id
+        });
         setTitle("");
         setDescription("");
+        setDeadline("");
     };
 
     if (!isOpen) return null;
+
+    // Get today's date for min attribute
+    const today = new Date().toISOString().split('T')[0];
 
     return (
         <AnimatePresence>
@@ -63,6 +81,22 @@ const AddGoalModal = ({ isOpen, onClose, onAdd, goalToEdit = null }) => {
                                 className="w-full px-3 py-2 bg-background border rounded-md focus:ring-2 focus:ring-primary"
                                 placeholder="Details about your goal..."
                                 rows={3}
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">
+                                <span className="flex items-center gap-1">
+                                    <Calendar size={14} />
+                                    Deadline (Optional)
+                                </span>
+                            </label>
+                            <input
+                                type="date"
+                                value={deadline}
+                                onChange={(e) => setDeadline(e.target.value)}
+                                min={today}
+                                className="w-full px-3 py-2 bg-background border rounded-md focus:ring-2 focus:ring-primary"
                             />
                         </div>
 

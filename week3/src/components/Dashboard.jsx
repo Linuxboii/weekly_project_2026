@@ -10,6 +10,7 @@ const Dashboard = ({ currentUser }) => {
     const [goals, setGoals] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [goalToEdit, setGoalToEdit] = useState(null);
     const [error, setError] = useState(null);
 
     const fetchGoals = async () => {
@@ -43,15 +44,36 @@ const Dashboard = ({ currentUser }) => {
         }
     }, [currentUser]);
 
-    const handleAddGoal = async (newGoalData) => {
+    const handleAddOrEditGoal = async (goalData) => {
         try {
-            await api.createGoal(newGoalData.title, newGoalData.description);
+            if (goalData.id) {
+                // Update existing goal
+                await api.updateGoal(goalData.id, {
+                    title: goalData.title,
+                    description: goalData.description,
+                    deadline: goalData.deadline
+                });
+            } else {
+                // Create new goal
+                await api.createGoal(goalData.title, goalData.description, goalData.deadline);
+            }
             await fetchGoals();
             setIsModalOpen(false);
+            setGoalToEdit(null);
         } catch (err) {
-            console.error("Failed to create goal:", err);
-            alert("Failed to create goal.");
+            console.error("Failed to save goal:", err);
+            alert(goalData.id ? "Failed to update goal." : "Failed to create goal.");
         }
+    };
+
+    const handleEditGoal = (goal) => {
+        setGoalToEdit(goal);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setGoalToEdit(null);
     };
 
     const handleCompleteGoal = async (goalId) => {
@@ -104,6 +126,7 @@ const Dashboard = ({ currentUser }) => {
                                 isOwner={true}
                                 username={goal.username || currentUser?.username || "You"}
                                 onToggle={() => handleCompleteGoal(goal.id)}
+                                onEdit={handleEditGoal}
                             />
                         ))
                     ) : (
@@ -119,8 +142,9 @@ const Dashboard = ({ currentUser }) => {
 
             <AddGoalModal
                 isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onAdd={handleAddGoal}
+                onClose={handleCloseModal}
+                onAdd={handleAddOrEditGoal}
+                goalToEdit={goalToEdit}
             />
         </div>
     );

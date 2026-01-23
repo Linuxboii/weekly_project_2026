@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle, Circle, Pencil, Clock, Plus, Minus, User, Loader2 } from "lucide-react";
+import { CheckCircle, Circle, Pencil, Clock, Plus, Minus, User, Loader2, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 
 const GoalCard = ({ goal, onToggle, onEdit, isOwner = true, username = "User" }) => {
@@ -9,11 +9,24 @@ const GoalCard = ({ goal, onToggle, onEdit, isOwner = true, username = "User" })
     const [counter, setCounter] = useState(initialCounter);
     const [isCounterLoading, setIsCounterLoading] = useState(false);
 
-    // Initial date handling
-    const createdDate = new Date(goal.created_at || Date.now());
-    const deadlineDate = new Date(createdDate);
-    deadlineDate.setDate(deadlineDate.getDate() + 7);
-    const deadlineString = deadlineDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    // Use backend-provided deadline data
+    const { deadline, days_left, deadline_crossed } = goal;
+
+    // Determine deadline display
+    const getDeadlineDisplay = () => {
+        if (deadline_crossed === true) {
+            return { text: "Deadline crossed", className: "text-destructive", icon: AlertTriangle };
+        } else if (days_left !== null && days_left !== undefined) {
+            return {
+                text: days_left === 0 ? "Due today" : days_left === 1 ? "1 day left" : `${days_left} days left`,
+                className: days_left <= 2 ? "text-amber-500" : "text-muted-foreground",
+                icon: Clock
+            };
+        }
+        return null;
+    };
+
+    const deadlineInfo = getDeadlineDisplay();
 
     const handleIncrement = async () => {
         if (isCounterLoading) return;
@@ -50,10 +63,12 @@ const GoalCard = ({ goal, onToggle, onEdit, isOwner = true, username = "User" })
                             <User size={10} className="mr-1" />
                             {username}
                         </span>
-                        <div className="flex items-center text-[10px] sm:text-xs text-muted-foreground" title="Estimated Deadline">
-                            <Clock size={10} className="mr-1" />
-                            {deadlineString}
-                        </div>
+                        {deadlineInfo && (
+                            <div className={`flex items-center text-[10px] sm:text-xs ${deadlineInfo.className}`} title="Deadline">
+                                <deadlineInfo.icon size={10} className="mr-1" />
+                                {deadlineInfo.text}
+                            </div>
+                        )}
                     </div>
                     <h3 className={`font-semibold text-lg leading-tight break-words ${isCompleted ? "line-through text-muted-foreground" : ""}`}>
                         {goal.title}
