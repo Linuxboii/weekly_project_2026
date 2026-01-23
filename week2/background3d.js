@@ -96,47 +96,164 @@ const CONFIG = {
     enabled: true,
 };
 
-// Planet definitions - Minimalist Flat Colors (Manual RGB approximation via HSL)
-// Hues: 0=Red, 0.1=Orange, 0.15=Yellow, 0.3=Green, 0.6=Blue, 0.8=Purple
-const PLANET_DEFS = [
-    { name: 'mercury', displayName: 'Mercury', description: 'Swift messenger planet', orbit: 3.2, size: 0.30, speed: 3.5, hue: 0.08, sat: 0.15, lum: 0.60, moons: [] },
-    { name: 'venus', displayName: 'Venus', description: 'Morning star', orbit: 4.5, size: 0.38, speed: 1.2, hue: 0.12, sat: 0.8, lum: 0.6, moons: [] },
-    {
-        name: 'earth', displayName: 'Earth', description: 'Blue marble', orbit: 6.0, size: 0.40, speed: 0.8, hue: 0.58, sat: 0.6, lum: 0.5, moons: [
-            { name: 'moon', displayName: 'The Moon', description: 'Earth\'s satellite', size: 0.11, orbit: 0.5, speed: 1.5, hue: 0.0, sat: 0.0, lum: 0.8 }
-        ]
-    },
-    {
-        name: 'mars', displayName: 'Mars', description: 'Red planet', orbit: 7.5, size: 0.34, speed: 0.6, hue: 0.02, sat: 0.7, lum: 0.55, moons: [
-            { name: 'phobos', displayName: 'Phobos', description: 'Mars Moon I', size: 0.07, orbit: 0.4, speed: 2.0, hue: 0.05, sat: 0.2, lum: 0.6 },
-            { name: 'deimos', displayName: 'Deimos', description: 'Mars Moon II', size: 0.06, orbit: 0.6, speed: 1.2, hue: 0.05, sat: 0.2, lum: 0.6 }
-        ]
-    },
-    {
-        name: 'jupiter', displayName: 'Jupiter', description: 'Gas giant', orbit: 10.0, size: 0.90, speed: 0.15, hue: 0.08, sat: 0.6, lum: 0.45, moons: [
-            { name: 'io', displayName: 'Io', description: 'Volcanic moon', size: 0.12, orbit: 0.95, speed: 2.5, hue: 0.15, sat: 0.8, lum: 0.7 },
-            { name: 'europa', displayName: 'Europa', description: 'Icy moon', size: 0.11, orbit: 1.3, speed: 1.8, hue: 0.55, sat: 0.2, lum: 0.9 }
-        ]
-    },
-    {
-        name: 'saturn', displayName: 'Saturn', description: 'Ringed world', orbit: 12.5, size: 0.80, speed: 0.1, hue: 0.14, sat: 0.5, lum: 0.7, moons: [
-            { name: 'titan', displayName: 'Titan', description: 'Largest moon', size: 0.15, orbit: 1.2, orbitY: 0.1, speed: 1.0, hue: 0.10, sat: 0.4, lum: 0.5 },
-            { name: 'enceladus', displayName: 'Enceladus', description: 'Icy geysers', size: 0.08, orbit: 0.9, speed: 2.2, hue: 0.5, sat: 0.1, lum: 0.9 }
-        ]
-    },
-    {
-        name: 'uranus', displayName: 'Uranus', description: 'Ice giant', orbit: 14.5, size: 0.60, speed: 0.05, hue: 0.48, sat: 0.5, lum: 0.6, moons: [
-            { name: 'titania', displayName: 'Titania', description: 'Uranus Moon I', size: 0.09, orbit: 0.7, speed: 1.5, hue: 0.6, sat: 0.1, lum: 0.7 },
-            { name: 'oberon', displayName: 'Oberon', description: 'Uranus Moon II', size: 0.08, orbit: 0.9, speed: 1.2, hue: 0.6, sat: 0.1, lum: 0.6 }
-        ]
-    },
-    {
-        name: 'neptune', displayName: 'Neptune', description: 'Deep blue', orbit: 16.5, size: 0.55, speed: 0.03, hue: 0.62, sat: 0.6, lum: 0.4, moons: [
-            { name: 'triton', displayName: 'Triton', description: 'Retrograde moon', size: 0.11, orbit: 0.7, speed: -1.0, hue: 0.5, sat: 0.2, lum: 0.8 },
-            { name: 'proteus', displayName: 'Proteus', description: 'Neptune Moon II', size: 0.07, orbit: 0.9, speed: 1.5, hue: 0.5, sat: 0.1, lum: 0.5 }
-        ]
-    },
+// ============================================
+// API CONFIGURATION
+// ============================================
+// Note: Using different name to avoid conflict with auth.js
+const SOLAR_API_URL = 'https://api.avlokai.com';
+
+// Planet definitions - populated from API (empty by default)
+let PLANET_DEFS = [];
+
+// Planet color palette (dynamic generation fallback)
+const PLANET_PALETTE = [
+    { hue: 0.08, sat: 0.15, lum: 0.60 }, // Mercury-ish
+    { hue: 0.12, sat: 0.8, lum: 0.6 },   // Venus-ish
+    { hue: 0.58, sat: 0.6, lum: 0.5 },   // Earth-ish
+    { hue: 0.02, sat: 0.7, lum: 0.55 },  // Mars-ish
+    { hue: 0.08, sat: 0.6, lum: 0.45 },  // Jupiter-ish
+    { hue: 0.14, sat: 0.5, lum: 0.7 },   // Saturn-ish
+    { hue: 0.48, sat: 0.5, lum: 0.6 },   // Uranus-ish
+    { hue: 0.62, sat: 0.6, lum: 0.4 },   // Neptune-ish
 ];
+
+// Moon color palette
+const MOON_COLORS = [
+    { hue: 0.0, sat: 0.0, lum: 0.8 },
+    { hue: 0.05, sat: 0.2, lum: 0.6 },
+    { hue: 0.55, sat: 0.2, lum: 0.9 },
+    { hue: 0.15, sat: 0.8, lum: 0.7 },
+];
+
+const MOON_NAMES = {
+    'earth': ['Moon'],
+    'mars': ['Phobos', 'Deimos'],
+    'jupiter': ['Io', 'Europa', 'Ganymede', 'Callisto'],
+    'saturn': ['Titan', 'Enceladus', 'Mimas', 'Dione', 'Rhea', 'Iapetus'],
+    'uranus': ['Titania', 'Oberon', 'Umbriel', 'Ariel', 'Miranda'],
+    'neptune': ['Triton', 'Proteus', 'Nereid']
+};
+
+const PLANET_NAMES = [
+    'mercury', 'venus', 'earth', 'mars',
+    'jupiter', 'saturn', 'uranus', 'neptune'
+];
+
+// ============================================
+// API DATA FETCHING
+// ============================================
+async function fetchControlProjects() {
+    try {
+        console.log('[SolarSystem] Fetching projects from API...');
+        const res = await fetch(`${SOLAR_API_URL}/control/projects`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const projects = await res.json();
+        console.log('[SolarSystem] Fetched', projects.length, 'projects');
+        return projects;
+    } catch (err) {
+        console.error('[SolarSystem] Failed to fetch projects:', err);
+        return null;
+    }
+}
+
+// ============================================
+// DATA TRANSFORMATION
+// ============================================
+function buildPlanetDefsFromProjects(projects) {
+    const projectList = projects || [];
+    const planetsData = projectList.filter(p => p.moon_index === null);
+    const moonsData = projectList.filter(p => p.moon_index !== null);
+
+    return STATIC_PLANET_DEFS.map((staticDef, index) => {
+        // Find project data for this planet (case-insensitive match)
+        // Adjust matching logic as needed (e.g. if backend returns 'earth-app' key on 'planet' field)
+        const proj = planetsData.find(p => p.planet && p.planet.toLowerCase() === staticDef.name.toLowerCase());
+
+        if (proj) {
+            console.log(`[SolarSystem] Mapped project "${proj.name}" to planet ${staticDef.displayName}`);
+        }
+
+        const hasData = !!proj;
+        const color = PLANET_COLORS[index % PLANET_COLORS.length]; // Fallback to standard colors
+
+        // Use static def properties, override speed if active
+        // If inactive (no data), use a 'ghost' style
+
+        let hue = staticDef.hue;
+        let sat = staticDef.sat;
+        let lum = staticDef.lum;
+        let description = staticDef.description;
+        let displayName = staticDef.displayName;
+        let moons = staticDef.moons; // Default mocked moons
+
+        if (hasData) {
+            // Apply project specific data
+            displayName = proj.name || staticDef.displayName;
+            description = `${proj.status} • ${proj.deployment_type}`;
+            // Adjust visualization based on status
+            lum = proj.status === 'archived' ? staticDef.lum * 0.5 : staticDef.lum;
+
+            // Map moons if any
+            const planetMoons = moonsData.filter(m => m.planet.toLowerCase() === staticDef.name.toLowerCase())
+                .sort((a, b) => a.moon_index - b.moon_index)
+                .map((moonProj, moonIdx) => {
+                    const moonColor = MOON_COLORS[moonIdx % MOON_COLORS.length];
+                    return {
+                        name: moonProj.slug, displayName: moonProj.name,
+                        description: `${moonProj.status} • ${moonProj.deployment_type}`,
+                        size: 0.08 + (moonIdx * 0.02), orbit: 0.4 + (moonIdx * 0.25),
+                        speed: 1.5 - (moonIdx * 0.3), hue: moonColor.hue, sat: moonColor.sat, lum: moonColor.lum,
+                        projectData: moonProj,
+                        isMoon: true
+                    };
+                });
+            if (planetMoons.length > 0) moons = planetMoons;
+        } else {
+            // GREYED OUT STATE for empty planets
+            sat = 0; // Desaturate
+            lum = 0.2; // Dim
+            description = "No data available";
+
+            // Grey out static moons too
+            if (moons && moons.length > 0) {
+                moons = moons.map(m => ({
+                    ...m,
+                    sat: 0,
+                    lum: 0.2
+                }));
+            }
+        }
+
+        return {
+            ...staticDef,
+            displayName,
+            description,
+            hue, sat, lum,
+            moons,
+            projectData: proj || null,
+            hasData: hasData, // Flag for interaction
+            isArchived: proj?.status === 'archived',
+            isPaused: proj?.status === 'paused',
+            isDashed: proj?.auto_deploy === false,
+            isThickOrbit: proj?.deployment_type === 'self_hosted'
+        };
+    });
+}
+
+function getStatusSpeedMultiplier(status) {
+    if (status === 'paused') return 0.2;
+    if (status === 'archived') return 0.05; // Almost stopped
+    return 1.0;
+}
+
+function getDeploymentMotion(type) {
+    if (type === 'static') return 0;
+    if (type === 'self_hosted') return 0.8;
+    return 1.0;
+}
+
+// Fallback removed - we do not assume any planets exist
+// function getFallbackPlanets() { ... }
 
 // ============================================
 // STATE
@@ -200,6 +317,9 @@ const state = {
     isMobile: false,
     isInitialized: false,
     lastTime: 0,
+
+    // Data
+    projects: [], // Raw project list from API
 };
 
 // ============================================
@@ -463,7 +583,7 @@ function createSun() {
     return group;
 }
 
-function createOrbitRing(radius, index, total) {
+function createOrbitRing(radius, index, total, def) {
     const segments = 256; // High res
     const positions = new Float32Array(segments * 3);
 
@@ -478,7 +598,11 @@ function createOrbitRing(radius, index, total) {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
     // Very faint, uniform opacity
-    const baseOpacity = CONFIG.theme.current === 'dark' ? 0.08 : 0.05;
+    // Even fainter if no data
+    let baseOpacity = CONFIG.theme.current === 'dark' ? 0.08 : 0.05;
+    if (def && !def.hasData) {
+        baseOpacity *= 0.3; // Very dim for empty planets
+    }
 
     const material = new THREE.LineBasicMaterial({
         color: getTheme('orbitRing'),
@@ -573,7 +697,7 @@ function createPlanet(def, index) {
             );
             const ring = new THREE.LineLoop(
                 ringGeo,
-                new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1 })
+                new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
             );
             ring.rotation.x = Math.PI / 2;
             planet.add(ring);
@@ -627,8 +751,8 @@ function initScene() {
         state.planets.push(planet);
         state.scene.add(planet);
 
-        // Orbit rings - Minimalist Faint Lines
-        const ring = createOrbitRing(def.orbit, i, PLANET_DEFS.length);
+        // Orbit rings - styled based on backend state
+        const ring = createOrbitRing(def.orbit, i, PLANET_DEFS.length, def);
         state.orbitRings.push(ring);
         state.scene.add(ring);
     });
@@ -751,12 +875,15 @@ function openProjectsModal() {
         return;
     }
 
-    // Populate with projects (using window.projectsList if available from app.js)
+    // Populate with ALL projects (Index Mode)
     const projectsContainer = modal.querySelector('.modal-projects');
-    const projects = window.projectsList || [
-        { id: 'week1', name: 'Week 1', description: 'File uploader with interactive particle background', icon: '📁', url: 'https://week1.avlokai.com/' },
-        { id: 'week3', name: 'Week 3', description: 'Goal & Habit Tracker with insights', icon: '📊', url: 'https://tracker.avlokai.com/' }
-    ];
+
+    // Show all projects sorted by planet
+    const projects = [...state.projects].sort((a, b) => {
+        if (!a.planet) return 1;
+        if (!b.planet) return -1;
+        return a.planet.localeCompare(b.planet);
+    });
 
     // Helper to add token to URL
     const getUrlWithToken = (url) => {
@@ -766,19 +893,35 @@ function openProjectsModal() {
         return `${url}${separator}auth_token=${encodeURIComponent(token)}`;
     };
 
-    projectsContainer.innerHTML = projects.map(p => `
-        <a class="modal-project-card" href="${getUrlWithToken(p.url || '#')}" data-project-id="${p.id}">
-            <div class="modal-project-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+    projectsContainer.innerHTML = projects.map(p => {
+        const hasPlanet = p.planet;
+        const planetName = hasPlanet ? p.planet.charAt(0).toUpperCase() + p.planet.slice(1) : 'Unassigned';
+        const moonInfo = p.moon_index !== null ? ` • Moon ${p.moon_index}` : '';
+        const locationText = hasPlanet ? `${planetName}${moonInfo}` : 'Orbiting Star';
+        const locationColor = hasPlanet ? '#a5b4fc' : '#9ca3af';
+
+        return `
+        <a class="modal-project-card" href="${getUrlWithToken(p.url || '#')}" data-project-id="${p.id}" style="display: flex; gap: 12px; align-items: center; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; text-decoration: none; color: white; transition: background 0.2s;">
+            <div class="modal-project-icon" style="color: ${locationColor}; opacity: 0.8;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
                 </svg>
             </div>
-            <div class="modal-project-info">
-                <div class="modal-project-name">${p.name}</div>
-                <div class-="modal-project-desc">${p.description}</div>
+            <div class="modal-project-info" style="flex: 1;">
+                <div class="modal-project-name" style="font-weight: 500; font-size: 15px;">${p.name}</div>
+                <div class="modal-project-location" style="font-size: 11px; color: ${locationColor}; margin-top: 2px;">
+                    ${locationText}
+                </div>
+            </div>
+            <div style="opacity: 0.3;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
             </div>
         </a>
-    `).join('');
+    `}).join('');
 
     state.isProjectsModalOpen = true;
     modal.classList.add('active');
@@ -1062,10 +1205,14 @@ function updateIdleDetection(time) {
 // ============================================
 // HOVER-TO-FREEZE DETECTION
 // ============================================
+// ============================================
+// HOVER-TO-FREEZE DETECTION
+// ============================================
 function checkPlanetHover() {
     // Skip hover updates if popup is locked
     if (state.isPopupLocked) {
         state.isSystemFrozen = true;
+        document.body.style.cursor = 'default';
         return;
     }
 
@@ -1081,6 +1228,8 @@ function checkPlanetHover() {
         const dist = Math.sqrt(Math.pow(planet.position.x - cursor.world.x, 2) + Math.pow(planet.position.y - cursor.world.y, 2));
         const hitRadius = def.size + 0.8;
 
+        // FIX: Check def.hasData instead of data.hasData 
+        // UPDATE: Allow hover on empty planets for adding new projects
         if (dist < hitRadius) {
             hoveredPlanet = planet;
         }
@@ -1104,6 +1253,9 @@ function checkPlanetHover() {
     state.hoveredPlanet = hoveredPlanet; // Store object instead of index
     state.isSystemFrozen = !!hoveredPlanet;
 
+    // Update cursor style
+    document.body.style.cursor = hoveredPlanet ? 'pointer' : 'default';
+
     // Show/hide tooltip
     if (hoveredPlanet && state.tooltipEl) {
         showHoverTooltip(hoveredPlanet);
@@ -1122,9 +1274,19 @@ function showHoverTooltip(planet) {
     const tooltip = state.tooltipEl;
 
     // Update tooltip content
+    // Update tooltip content
     tooltip.querySelector('.tooltip-title').textContent = def.displayName;
-    tooltip.querySelector('.tooltip-desc').textContent = def.description;
-    tooltip.querySelector('.tooltip-hint').style.display = 'block';
+
+    if (!def.hasData) {
+        tooltip.querySelector('.tooltip-desc').textContent = "Empty Region";
+        tooltip.querySelector('.tooltip-hint').textContent = "Click to Deploy Project";
+        tooltip.querySelector('.tooltip-hint').style.display = 'block';
+    } else {
+        tooltip.querySelector('.tooltip-desc').textContent = def.description;
+        tooltip.querySelector('.tooltip-hint').textContent = "Click to explore"; // Reset to default
+        tooltip.querySelector('.tooltip-hint').style.display = 'block';
+    }
+
     tooltip.querySelector('.tooltip-close').style.display = 'none';
     tooltip.querySelector('.tooltip-actions').style.display = 'none';
 
@@ -1145,22 +1307,71 @@ function lockPopup(targetObject) {
     if (!targetObject) return;
 
     const def = targetObject.userData.def;
+    const projectData = def.projectData;
     const tooltip = state.tooltipEl;
 
     state.isPopupLocked = true;
     state.lockedObject = targetObject;
     state.isSystemFrozen = true;
 
-    // Update tooltip for locked state
-    tooltip.querySelector('.tooltip-title').textContent = def.displayName;
-    tooltip.querySelector('.tooltip-desc').textContent = def.description;
-    tooltip.querySelector('.tooltip-hint').style.display = 'none';
+    // Update tooltip for locked state with backend metadata
+    // Customize popup based on object type
+    if (targetObject.userData.isMoon) {
+        // MOON: Full details
+        tooltip.querySelector('.tooltip-title').textContent = def.displayName;
+        const statusEmoji = projectData?.status === 'live' ? '🟢' :
+            projectData?.status === 'paused' ? '⏸️' :
+                projectData?.status === 'archived' ? '📦' : '⚪';
+        const deployType = projectData?.deployment_type || 'unknown';
+        const autoDeploy = projectData?.auto_deploy ? '✓ Auto-deploy' : '✗ Manual deploy';
+
+        tooltip.querySelector('.tooltip-desc').innerHTML = `
+            <div style="margin-bottom: 8px;">${def.description}</div>
+            <div style="font-size: 11px; opacity: 0.6; display: flex; flex-direction: column; gap: 4px;">
+                <span>${statusEmoji} ${projectData?.status || 'Status unknown'}</span>
+                <span>🚀 ${deployType}</span>
+                <span>${autoDeploy}</span>
+            </div>
+        `;
+        tooltip.querySelector('.tooltip-hint').style.display = 'none';
+        tooltip.querySelector('.tooltip-close').style.display = 'block';
+
+        // Show action buttons
+        const actionsEl = tooltip.querySelector('.tooltip-actions');
+        actionsEl.style.display = 'flex';
+        actionsEl.innerHTML = getPlanetActions(def, projectData, true); // true = isMoon
+
+    } else {
+        // PLANET: Name Only + Click to Navigate
+        // Emphasize the name, possibly minimal description
+        tooltip.querySelector('.tooltip-title').innerHTML = `
+            <a href="${getProjectUrlWithToken(projectData?.url || '#')}" 
+               target="_blank" rel="noopener noreferrer"
+               style="color: inherit; text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.5); padding-bottom: 2px;">
+               ${def.displayName} ↗
+            </a>
+        `;
+
+        // Hide details for planet, only keep the name which is now a link
+        // We might want to keep the description if it's the planet's description,
+        // but user asked for "show the project name only".
+        // Let's keep it minimal.
+        tooltip.querySelector('.tooltip-desc').innerHTML = ''; // Clear description
+        tooltip.querySelector('.tooltip-hint').style.display = 'block';
+        tooltip.querySelector('.tooltip-hint').textContent = 'Click name to open';
+        tooltip.querySelector('.tooltip-close').style.display = 'block';
+
+        // No extra actions for planet, the name is the action
+        const actionsEl = tooltip.querySelector('.tooltip-actions');
+        actionsEl.style.display = 'none';
+        actionsEl.innerHTML = '';
+    }
     tooltip.querySelector('.tooltip-close').style.display = 'block';
 
-    // Show action buttons
+    // Show action buttons based on backend data
     const actionsEl = tooltip.querySelector('.tooltip-actions');
     actionsEl.style.display = 'flex';
-    actionsEl.innerHTML = getPlanetActions(def.name);
+    actionsEl.innerHTML = getPlanetActions(def, projectData);
 
     // Enable pointer events on tooltip
     tooltip.style.pointerEvents = 'auto';
@@ -1189,8 +1400,8 @@ function unlockPopup() {
     }
 }
 
-function getPlanetActions(planetName) {
-    // Define action buttons for each planet
+function getPlanetActions(def, projectData) {
+    // Define action buttons based on backend project data
     const btnStyle = `
         padding: 10px 14px;
         background: rgba(99, 102, 241, 0.2);
@@ -1202,44 +1413,28 @@ function getPlanetActions(planetName) {
         cursor: pointer;
         text-align: left;
         transition: all 0.15s ease;
+        text-decoration: none;
+        display: block;
     `;
 
-    const actions = {
-        mercury: `
-            <button style="${btnStyle}" onclick="console.log('Explore Mercury')">🚀 Quick Tour</button>
-            <button style="${btnStyle}" onclick="console.log('Mercury Info')">📊 View Stats</button>
-        `,
-        venus: `
-            <button style="${btnStyle}" onclick="console.log('Venus Explore')">🌟 Explore Venus</button>
-            <button style="${btnStyle}" onclick="console.log('Venus Atmosphere')">☁️ Atmosphere</button>
-        `,
-        earth: `
-            <button style="${btnStyle}" onclick="console.log('Projects clicked')">📁 View Projects</button>
-            <button style="${btnStyle}" onclick="console.log('Dashboard')">🏠 Dashboard</button>
-            <button style="${btnStyle}" onclick="console.log('Settings')">⚙️ Settings</button>
-        `,
-        mars: `
-            <button style="${btnStyle}" onclick="console.log('Mars Mission')">🔴 Mars Mission</button>
-            <button style="${btnStyle}" onclick="console.log('Rovers')">🤖 Rovers</button>
-        `,
-        jupiter: `
-            <button style="${btnStyle}" onclick="console.log('Jupiter')">🌊 Great Red Spot</button>
-            <button style="${btnStyle}" onclick="console.log('Moons')">🌙 View Moons</button>
-        `,
-        saturn: `
-            <button style="${btnStyle}" onclick="console.log('Rings')">💍 Ring System</button>
-            <button style="${btnStyle}" onclick="console.log('Titan')">🌑 Explore Titan</button>
-        `,
-        uranus: `
-            <button style="${btnStyle}" onclick="console.log('Uranus')">🔵 Ice Giant</button>
-        `,
-        neptune: `
-            <button style="${btnStyle}" onclick="console.log('Neptune')">🌊 Deep Blue</button>
-            <button style="${btnStyle}" onclick="console.log('Triton')">❄️ Triton</button>
-        `
-    };
+    // If we have a URL from backend, create a redirect button
+    if (projectData?.url) {
+        const token = localStorage.getItem('auth_token');
+        let url = projectData.url;
+        if (token) {
+            const separator = url.includes('?') ? '&' : '?';
+            url = `${url}${separator}auth_token=${encodeURIComponent(token)}`;
+        }
 
-    return actions[planetName] || `<button style="${btnStyle}">ℹ️ Learn More</button>`;
+        return `
+            <a href="${url}" style="${btnStyle}" target="_blank" rel="noopener noreferrer">
+                🚀 Open Project
+            </a>
+        `;
+    }
+
+    // Fallback for projects without URL
+    return `<button style="${btnStyle}">ℹ️ Learn More</button>`;
 }
 
 function worldToScreen(worldX, worldY) {
@@ -1475,46 +1670,288 @@ function onThemeChange() {
 }
 
 // ============================================
-// LIFECYCLE
+// DATA TRANSFORMATION & RESOLUTION
 // ============================================
-function init() {
-    if (state.isInitialized) return;
 
-    state.isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    state.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+function getProjectUrlWithToken(baseUrl) {
+    const token = localStorage.getItem('auth_token');
+    if (token && baseUrl !== '#') {
+        const separator = baseUrl.includes('?') ? '&' : '?';
+        return `${baseUrl}${separator}auth_token=${encodeURIComponent(token)}`;
+    }
+    return baseUrl;
+}
 
-    initScene();
+function resolveSolarSystem(projects) {
+    // 1. Initialize all planets as skeletons (greyed out)
+    const planetMap = {};
+    const planetOrder = [];
 
-    window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    window.addEventListener('touchstart', onTouchMove, { passive: true });
-    window.addEventListener('resize', onResize);
-
-    new MutationObserver(onThemeChange).observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['data-theme']
+    PLANET_NAMES.forEach((name, index) => {
+        const planet = createLogicalPlanet(name, index);
+        planetMap[name] = planet;
+        planetOrder.push(planet);
     });
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onThemeChange);
-    window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
-        state.isReducedMotion = e.matches;
-    });
 
-    // Reset button listener
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('#reset-solar-btn')) {
-            resetSolarSystem();
+    if (!projects || projects.length === 0) return planetOrder;
+
+    // 2. Hydrate with project data
+    projects.forEach(project => {
+        const planetName = project.planet ? project.planet.toLowerCase() : null;
+        if (!planetName || !planetMap[planetName]) return;
+
+        const planetObj = planetMap[planetName];
+
+        if (project.moon_index == null) {
+            // It's the planet itself
+            attachProjectToPlanet(planetObj, project);
+        } else {
+            // It's a moon
+            // Shared Data Model: Attach to Planet (for redirect) AND Moon (for details)
+            attachProjectToPlanet(planetObj, project);
+            attachMoonToPlanet(planetObj, project, project.moon_index);
         }
     });
 
-    // Sun click interactions
-    document.addEventListener('click', onSunClick, { passive: true });
+    return planetOrder;
+}
 
-    // Enable sun-mode by default (dashboard content starts hidden "in the sun")
-    document.querySelector('.dashboard')?.classList.add('sun-mode');
+function createLogicalPlanet(name, index) {
+    // Generate consistent color from name
+    const colorIdx = Math.abs(stringHash(name)) % PLANET_PALETTE.length;
+    const baseColor = PLANET_PALETTE[colorIdx];
 
-    animate(0);
-    state.isInitialized = true;
-    console.log('[SolarSystem v2.3] Initialized', { theme: state.theme.current, reducedMotion: state.isReducedMotion });
+    const planet = {
+        name: name,
+        displayName: name.charAt(0).toUpperCase() + name.slice(1),
+        index: index,
+
+        // Base Color (Stored for later hydration)
+        baseHue: baseColor.hue,
+        baseSat: baseColor.sat,
+        baseLum: baseColor.lum,
+
+        // Visual props (Greyed Out Default)
+        hue: baseColor.hue,
+        sat: 0,   // Desaturated
+        lum: 0.2, // Dim
+
+        // Orbit Rules: baseRadius + index * spacing
+        orbit: 4.0 + (index * 2.5),
+        size: 0.35 + (index % 3 * 0.05), // Slight variation
+        speed: 1.0 / (1 + index * 0.2),  // Farther = slower
+
+        projectData: null, // Populated if moon_index === null project exists
+        moons: [],         // Populated dynamically
+
+        // State flags
+        hasData: false, // Default: No data -> No interaction
+        // New flags for logic
+        isArchived: false,
+        isPaused: false,
+        isDashed: false,
+        isThickOrbit: true // Default distinct orbit line even if empty
+    };
+
+    // Pre-populate Moons (Placeholder Skeletons)
+    const planetNameKey = name.toLowerCase();
+    const moonNames = MOON_NAMES[planetNameKey] || [];
+
+    moonNames.forEach((moonName, moonIdx) => {
+        // Default "Greyed Out" Moon
+        const moonColor = MOON_COLORS[moonIdx % MOON_COLORS.length];
+
+        planet.moons.push({
+            name: `moon-${moonIdx}`, // Placeholder ID
+            displayName: moonName,
+            index: moonIdx,
+
+            // Base Visuals (Stored for hydration)
+            baseHue: moonColor.hue,
+            baseSat: moonColor.sat,
+            baseLum: moonColor.lum,
+
+            // Active Visuals (Greyed Out)
+            hue: moonColor.hue,
+            sat: 0.0, // Fully grey
+            lum: 0.4, // Visible but dimmed
+
+            // Physics
+            size: 0.08 + (moonIdx * 0.02),
+            orbit: 0.6 + (moonIdx * 0.35),
+            speed: 1.5 - (moonIdx * 0.1),
+
+            projectData: null,
+            isMoon: true,
+            hasData: false // Non-interactive
+        });
+    });
+
+    return planet;
+}
+
+function attachProjectToPlanet(planet, project) {
+    planet.projectData = project;
+    planet.displayName = project.name; // Use project name for display
+    planet.hasData = true;
+
+    // Restore Base Color (Hydration)
+    planet.hue = planet.baseHue;
+    planet.sat = planet.baseSat;
+    planet.lum = planet.baseLum;
+
+    // Dynamic Visual state mapping
+    if (project.status === 'archived') {
+        planet.lum *= 0.5;
+        planet.sat *= 0.2;
+        planet.isArchived = true;
+    }
+
+    if (project.status === 'paused') {
+        planet.isPaused = true;
+    }
+
+    if (project.auto_deploy === false) {
+        planet.isDashed = true;
+    }
+
+    if (project.deployment_type === 'self_hosted') {
+        planet.isThickOrbit = true;
+    }
+
+    if (project.deployment_type === 'static') {
+        planet.speed = 0;
+    }
+
+    console.log(`[SolarSystem] Dynamic: Created/Updated planet ${planet.name} for project ${project.name}`);
+}
+
+function attachMoonToPlanet(planet, project, moonIndex) {
+    // Determine moon color
+    const color = MOON_COLORS[moonIndex % MOON_COLORS.length];
+
+    // Logic for visuals
+    let hue = color.hue;
+    let sat = color.sat;
+    let lum = color.lum;
+    let speed = 1.5 - (moonIndex * 0.1);
+
+    if (project && project.status === 'archived') {
+        lum *= 0.5;
+        sat *= 0.2;
+    }
+    if (project && project.deployment_type === 'static') {
+        speed = 0;
+    }
+
+    // Find existing placeholder moon OR create new one (if index > placeholders)
+    let moon = planet.moons.find(m => m.index === moonIndex);
+
+    if (!moon) {
+        // Create new if not found (unexpected with predefined names, but safe fallback)
+        moon = {
+            index: moonIndex,
+            moons: [], // Moons don't have moons in this model, but keep structure consistent? No.
+            isMoon: true
+        };
+        planet.moons.push(moon);
+    }
+
+    // HYDRATE with Project Data
+    moon.name = project ? project.slug : `moon-${moonIndex}`;
+    // keep displayName from placeholder (IRL name) unless explicitly overriding? 
+    // Actually, we want IRL name. Placeholder already has it. 
+    // IF we want to show project name in some cases, we could logic check. 
+    // But requirement was IRL names.
+    // Check if we need to set displayName if it wasn't pre-populated (e.g. index beyond known moons)
+    if (!moon.displayName || moon.displayName.startsWith('Moon ')) {
+        const planetNameKey = planet.name.toLowerCase();
+        const irlNames = MOON_NAMES[planetNameKey] || [];
+        moon.displayName = irlNames[moonIndex] || (project ? project.name : `Moon ${moonIndex}`);
+    }
+
+    // Restore Colors
+    moon.hue = moon.baseHue || hue; // Use baseHue if available (from placeholder)
+    moon.sat = moon.baseSat || sat;
+    moon.lum = moon.baseLum || lum;
+
+    // Update Stats
+    moon.projectData = project;
+    moon.hasData = !!project;
+    moon.size = 0.08 + (moonIndex * 0.02); // Ensure consistent
+    moon.orbit = 0.6 + (moonIndex * 0.35);
+    moon.speed = speed;
+
+    console.log(`[SolarSystem] Dynamic: Hydrated moon ${moon.displayName} on ${planet.name}`);
+}
+
+function stringHash(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i);
+        hash |= 0;
+    }
+    return hash;
+}
+
+// ============================================
+// LIFECYCLE
+// ============================================
+async function init() {
+    if (state.isInitialized) return;
+
+    // 1. Force Sun Mode immediately to hide Dashboard (Prevent "Double Page" visual)
+    try {
+        const dashboard = document.querySelector('.dashboard');
+        if (dashboard) dashboard.classList.add('sun-mode');
+    } catch (e) {
+        console.error('[SolarSystem] Failed to apply sun-mode:', e);
+    }
+
+    try {
+        state.isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        state.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+        // Fetch projects from API before initializing scene
+        const projects = await fetchControlProjects();
+        state.projects = projects || [];
+        PLANET_DEFS = resolveSolarSystem(state.projects);
+
+        initScene();
+
+        window.addEventListener('mousemove', onMouseMove, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchstart', onTouchMove, { passive: true });
+        window.addEventListener('resize', onResize);
+
+        new MutationObserver(onThemeChange).observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme']
+        });
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onThemeChange);
+        window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (e) => {
+            state.isReducedMotion = e.matches;
+        });
+
+        // Reset button listener
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#reset-solar-btn')) {
+                resetSolarSystem();
+            }
+        });
+
+        // Sun click interactions
+        document.addEventListener('click', onSunClick, { passive: true });
+
+        // (Redundant check, already done at start)
+        // document.querySelector('.dashboard')?.classList.add('sun-mode');
+
+        animate(0);
+        state.isInitialized = true;
+        console.log('[SolarSystem v3.0] Initialized', { theme: state.theme.current, reducedMotion: state.isReducedMotion, planets: PLANET_DEFS.length });
+    } catch (err) {
+        console.error('[SolarSystem] Init failed:', err);
+    }
 }
 
 function onSunClick(e) {
@@ -1542,31 +1979,58 @@ function onSunClick(e) {
     let clickedObject = null;
 
     // Check planets and their moons
+    // Check planets and their moons
     state.planets.forEach((planet) => {
         // Check planet
         const dist = Math.sqrt(Math.pow(planet.position.x - worldX, 2) + Math.pow(planet.position.y - worldY, 2));
         if (dist < planet.userData.def.size + 0.8) {
+            // Hit detected - regardless of data
+            // If already hit something (like a moon), maybe planet takes precedence if closer? 
+            // But moon logic typically runs after and overrides if hit.
+            // Let's stick to: if hit planet, set clickedObject. 
             clickedObject = planet;
         }
 
-        // Check moons
-        if (!clickedObject && planet.userData.moonPivots) {
+        // Check moons (Always check moons, they sit "above" planets or share space)
+        if (planet.userData.moonPivots) {
             planet.userData.moonPivots.forEach(pivot => {
                 const moon = pivot.children[0];
                 const moonPos = new THREE.Vector3();
                 moon.getWorldPosition(moonPos);
                 const d = Math.sqrt(Math.pow(moonPos.x - worldX, 2) + Math.pow(moonPos.y - worldY, 2));
                 if (d < moon.userData.def.size + 0.5) {
-                    clickedObject = moon;
+                    clickedObject = moon; // Moon takes priority (smaller target)
                 }
             });
         }
     });
 
     if (clickedObject) {
-        // Lock popup on this object
+        // Lock popup on this object (only if it has data)
+        const def = clickedObject.userData.def;
+
+        if (def && !def.hasData) {
+            console.log('[SolarSystem] Opening add project modal for:', def.displayName);
+
+            // Determine planet name and moon index
+            let planetName = def.name;
+            let moonIndex = null;
+
+            if (clickedObject.userData.isMoon) {
+                // Access parent planet from the mesh userData
+                const parentPlanet = clickedObject.userData.parentPlanet;
+                if (parentPlanet) {
+                    planetName = parentPlanet.userData.def.name;
+                    moonIndex = def.index;
+                }
+            }
+
+            openAddProjectModal(planetName, moonIndex, def.displayName);
+            return;
+        }
+
         lockPopup(clickedObject);
-        console.log('[SolarSystem] Object clicked:', clickedObject.userData.def.displayName);
+        console.log('[SolarSystem] Object clicked:', def.displayName);
         return;
     }
 
@@ -1580,6 +2044,191 @@ function onSunClick(e) {
         hideSunTooltip();
         console.log('[SolarSystem] Sun clicked - opening projects modal');
     }
+}
+
+// ============================================
+// ADD PROJECT MODAL
+// ============================================
+function createAddProjectModal() {
+    if (document.getElementById('add-project-modal')) return;
+
+    // Create backdrop
+    const backdrop = document.createElement('div');
+    backdrop.id = 'add-project-backdrop';
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    `;
+    document.body.appendChild(backdrop);
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'add-project-modal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%) scale(0.95);
+        background: #111;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 12px;
+        padding: 24px;
+        width: 90%;
+        max-width: 400px;
+        z-index: 10001;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s ease;
+        font-family: 'Inter', sans-serif;
+        color: #fff;
+    `;
+
+    modal.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="margin:0; font-size:18px; font-weight:600;">Deploy Project</h3>
+            <button class="modal-close" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+        </div>
+        <form id="add-project-form" style="display:flex; flex-direction:column; gap:16px;">
+            <div>
+                <label style="display:block; font-size:12px; margin-bottom:6px; opacity:0.7;">Planet / Location</label>
+                <input type="text" name="location_display" readonly style="width:100%; background:#222; border:1px solid #333; padding:10px; border-radius:6px; color:#aaa; font-family:inherit;">
+            </div>
+            
+            <div>
+                <label style="display:block; font-size:12px; margin-bottom:6px; opacity:0.7;">Project Name</label>
+                <input type="text" name="name" required placeholder="e.g. Portfolio v2" style="width:100%; background:#000; border:1px solid #333; padding:10px; border-radius:6px; color:#fff; font-family:inherit;">
+            </div>
+
+            <div>
+                <label style="display:block; font-size:12px; margin-bottom:6px; opacity:0.7;">Project URL</label>
+                <input type="url" name="url" required placeholder="https://..." style="width:100%; background:#000; border:1px solid #333; padding:10px; border-radius:6px; color:#fff; font-family:inherit;">
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div>
+                    <label style="display:block; font-size:12px; margin-bottom:6px; opacity:0.7;">Deployment</label>
+                    <select name="deployment_type" style="width:100%; background:#000; border:1px solid #333; padding:10px; border-radius:6px; color:#fff; font-family:inherit;">
+                        <option value="static">Static</option>
+                        <option value="vercel">Vercel</option>
+                        <option value="cloudflare">Cloudflare</option>
+                        <option value="self_hosted">Self Hosted</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-size:12px; margin-bottom:6px; opacity:0.7;">Status</label>
+                    <select name="status" style="width:100%; background:#000; border:1px solid #333; padding:10px; border-radius:6px; color:#fff; font-family:inherit;">
+                        <option value="live">Live</option>
+                        <option value="paused">Paused</option>
+                        <option value="archived">Archived</option>
+                        <option value="building">Building</option>
+                    </select>
+                </div>
+            </div>
+
+            <input type="hidden" name="planet">
+            <input type="hidden" name="moon_index">
+
+            <button type="submit" style="margin-top:10px; background:#4f46e5; color:white; border:none; padding:12px; border-radius:6px; cursor:pointer; font-weight:500; transition:background 0.2s;">
+                Initialize Deployment
+            </button>
+        </form>
+    `;
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.classList.remove('active');
+        backdrop.classList.remove('active');
+        modal.style.opacity = '0';
+        modal.style.pointerEvents = 'none';
+        modal.style.transform = 'translate(-50%, -50%) scale(0.95)';
+        backdrop.style.opacity = '0';
+        backdrop.style.pointerEvents = 'none';
+    };
+
+    modal.querySelector('.modal-close').addEventListener('click', close);
+    backdrop.addEventListener('click', close);
+
+    // Form submission
+    const form = modal.querySelector('form');
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.textContent;
+        btn.textContent = 'Deploying...';
+        btn.disabled = true;
+
+        const formData = new FormData(form);
+        const data = {
+            name: formData.get('name'),
+            url: formData.get('url'),
+            planet: formData.get('planet'),
+            moon_index: formData.get('moon_index') ? parseInt(formData.get('moon_index')) : null,
+            deployment_type: formData.get('deployment_type'),
+            status: formData.get('status')
+        };
+
+        try {
+            const res = await fetch('https://api.avlokai.com/control/projects/add_new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!res.ok) throw new Error('Failed to add project');
+
+            const result = await res.json();
+            console.log('Project added:', result);
+
+            // Reload page to refresh system
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+            alert('Error adding project: ' + err.message);
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+    });
+
+    state.addProjectModal = { modal, backdrop, close };
+}
+
+function openAddProjectModal(planetName, moonIndex, displayName) {
+    if (!state.addProjectModal) createAddProjectModal();
+
+    const { modal, backdrop } = state.addProjectModal;
+    const form = modal.querySelector('form');
+
+    // Reset form
+    form.reset();
+
+    // Fill hidden fields
+    form.querySelector('[name="planet"]').value = planetName;
+    if (moonIndex !== null) {
+        form.querySelector('[name="moon_index"]').value = moonIndex;
+    } else {
+        form.querySelector('[name="moon_index"]').value = '';
+    }
+
+    form.querySelector('[name="location_display"]').value = displayName;
+
+    // Show
+    modal.classList.add('active');
+    backdrop.classList.add('active');
+
+    // Animate in
+    requestAnimationFrame(() => {
+        modal.style.opacity = '1';
+        modal.style.pointerEvents = 'auto';
+        modal.style.transform = 'translate(-50%, -50%) scale(1)';
+        backdrop.style.opacity = '1';
+        backdrop.style.pointerEvents = 'auto';
+    });
 }
 
 function destroy() {
