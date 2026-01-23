@@ -8,7 +8,7 @@
 // ============================================
 const CONFIG = {
     // === GLOBAL VIEW ===
-    viewSize: 19, // Slightly zoomed in for "bigger" feel
+    viewSize: 24, // Increased to fit all planets including Neptune
     zoomSpeed: 0.1,
     minViewSize: 10,
     maxViewSize: 30,
@@ -137,6 +137,14 @@ const MOON_NAMES = {
 const PLANET_NAMES = [
     'mercury', 'venus', 'earth', 'mars',
     'jupiter', 'saturn', 'uranus', 'neptune'
+];
+
+const ASTEROID_NAMES = [
+    "Ceres", "Pallas", "Juno", "Vesta", "Astraea", "Hebe", "Iris", "Flora", "Metis", "Hygiea",
+    "Parthenope", "Victoria", "Egeria", "Irene", "Eunomia", "Psyche", "Thetis", "Melpomene", "Fortuna", "Massalia",
+    "Lutetia", "Calliope", "Thalia", "Themis", "Phocaea", "Proserpina", "Euterpe", "Bellona", "Amphitrite", "Urania",
+    "Euphrosyne", "Pomona", "Polyhymnia", "Circe", "Leucothea", "Atalante", "Fides", "Leda", "Laetitia", "Harmonia",
+    "Daphne", "Isis", "Ariadne", "Nysa", "Eugenia", "Hestia", "Aglaia", "Doris", "Pales", "Virginia"
 ];
 
 // ============================================
@@ -320,7 +328,13 @@ const state = {
 
     // Data
     projects: [], // Raw project list from API
+    asteroids: [], // Asteroid belt objects
 };
+
+const ASTEROID_COUNT = 50;
+const ASTEROID_BELT_RADIUS_MIN = 13; // Between Mars (11.5) and Jupiter (14)
+const ASTEROID_BELT_RADIUS_MAX = 15;
+
 
 // ============================================
 // UTILITIES
@@ -756,6 +770,10 @@ function initScene() {
         state.orbitRings.push(ring);
         state.scene.add(ring);
     });
+
+    // Add Asteroid Belt
+    const asteroidBelt = createAsteroidBelt();
+    state.scene.add(asteroidBelt);
 
     // Lighting
     state.ambientLight = new THREE.AmbientLight(0xffffff, getTheme('ambientLight'));
@@ -1249,6 +1267,16 @@ function checkPlanetHover() {
         }
     });
 
+    // Check Asteroids
+    if (state.asteroids) {
+        state.asteroids.forEach(asteroid => {
+            const dist = Math.sqrt(Math.pow(asteroid.position.x - cursor.world.x, 2) + Math.pow(asteroid.position.y - cursor.world.y, 2));
+            if (dist < asteroid.userData.def.size + 0.3) {
+                hoveredPlanet = asteroid;
+            }
+        });
+    }
+
     // Update hover state
     state.hoveredPlanet = hoveredPlanet; // Store object instead of index
     state.isSystemFrozen = !!hoveredPlanet;
@@ -1628,6 +1656,36 @@ function animate(time) {
     }
 
     animatePlanets(time);
+
+    // Animate Asteroids
+    if (state.asteroids) {
+        state.asteroids.forEach(asteroid => {
+            // Orbit around Sun (Simple rotation for now, could be improved)
+            const data = asteroid.userData;
+
+            // Only update orbit angle if system is not frozen
+            if (!state.isSystemFrozen) {
+                data.angle += data.orbitSpeed * 0.01;
+            }
+
+            // Update position
+            const r = data.def.orbit;
+            asteroid.position.x = Math.cos(data.angle) * r;
+            asteroid.position.y = Math.sin(data.angle) * r;
+
+            // Self rotation
+            if (!state.isSystemFrozen) {
+                asteroid.rotation.x += data.rotSpeed.x;
+                asteroid.rotation.y += data.rotSpeed.y;
+            }
+
+            // Visual feedback on hover/active
+            const isActive = (asteroid === state.hoveredPlanet || asteroid === state.lockedObject);
+            const targetIntensity = isActive ? 0.5 : (data.def.hasData ? 0.3 : 0);
+            asteroid.material.emissiveIntensity = lerp(asteroid.material.emissiveIntensity, targetIntensity, 0.1);
+        });
+    }
+
     animateSun(time);
     animateStarField(time); // Twinkling stars enabled
     updateCamera();
@@ -1713,7 +1771,98 @@ function resolveSolarSystem(projects) {
         }
     });
 
+    // 3. Hydrate Asteroids
+    hydrateAsteroids(projects);
+
     return planetOrder;
+}
+
+function createAsteroidBelt() {
+    state.asteroids = [];
+    const asteroidGroup = new THREE.Group();
+    asteroidGroup.name = 'asteroidBelt';
+
+    // Create base asteroids
+    for (let i = 0; i < ASTEROID_COUNT; i++) {
+        // Random position in belt
+        const angle = (i / ASTEROID_COUNT) * Math.PI * 2 + (Math.random() * 0.5);
+        const radius = ASTEROID_BELT_RADIUS_MIN + Math.random() * (ASTEROID_BELT_RADIUS_MAX - ASTEROID_BELT_RADIUS_MIN);
+
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius;
+        const size = 0.15 + Math.random() * 0.2;
+
+        // Irregular shape using Icosahedron
+        const geometry = new THREE.IcosahedronGeometry(size, 0);
+
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x888888, // Grey by default
+            roughness: 0.9,
+            metalness: 0.2,
+            flatShading: true
+        });
+
+        const asteroid = new THREE.Mesh(geometry, material);
+        asteroid.position.set(x, y, (Math.random() - 0.5) * 1.5);
+
+        // Random rotation
+        asteroid.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+
+        asteroid.userData = {
+            index: i,
+            isAsteroid: true,
+            def: {
+                name: 'asteroid-belt', // Shared "planet" name
+                displayName: ASTEROID_NAMES[i % ASTEROID_NAMES.length] || `Asteroid-${i + 1}`,
+                description: 'Unchartered Rock',
+                index: i + 100, // Offset index
+                locationType: 'asteroid',
+                orbit: radius,
+                hasData: false, // Default inactive
+                size: size
+            },
+            // Physics
+            angle: angle,
+            orbitSpeed: 0.05 + Math.random() * 0.02,
+            rotSpeed: { x: (Math.random() - 0.5) * 0.05, y: (Math.random() - 0.5) * 0.05 }
+        };
+
+        state.asteroids.push(asteroid);
+        asteroidGroup.add(asteroid);
+    }
+
+    return asteroidGroup;
+}
+
+function hydrateAsteroids(projects) {
+    // Filter projects assigned to asteroid belt
+    const asteroidProjects = projects.filter(p => p.planet && p.planet.toLowerCase() === 'asteroid-belt');
+
+    // Map them to asteroids
+    asteroidProjects.forEach((proj, i) => {
+        // Use moon_index if provided, otherwise sequential
+        const targetIndex = proj.moon_index !== null ? proj.moon_index : i;
+
+        // Wrap around if we run out of asteroids (shouldn't happen with 50)
+        const asteroid = state.asteroids[targetIndex % state.asteroids.length];
+
+        if (asteroid) {
+            const def = asteroid.userData.def;
+            const originalName = def.displayName; // Save original name
+
+            def.hasData = true;
+            def.projectData = proj;
+            def.displayName = proj.name; // Use project name
+            def.description = `${proj.status} • On ${originalName}`;
+
+            // Visual feedback for active asteroid
+            asteroid.material.color.setHex(0xa5b4fc); // Light blueish
+            asteroid.material.emissive.setHex(0x4f46e5);
+            asteroid.material.emissiveIntensity = 0.3;
+
+            console.log(`[SolarSystem] Mapped project ${proj.name} to Asteroid-${targetIndex}`);
+        }
+    });
 }
 
 function createLogicalPlanet(name, index) {
@@ -2005,6 +2154,16 @@ function onSunClick(e) {
         }
     });
 
+    // Check asteroids
+    if (state.asteroids) {
+        state.asteroids.forEach(asteroid => {
+            const dist = Math.sqrt(Math.pow(asteroid.position.x - worldX, 2) + Math.pow(asteroid.position.y - worldY, 2));
+            if (dist < asteroid.userData.def.size + 0.3) {
+                clickedObject = asteroid;
+            }
+        });
+    }
+
     if (clickedObject) {
         // Lock popup on this object (only if it has data)
         const def = clickedObject.userData.def;
@@ -2023,6 +2182,9 @@ function onSunClick(e) {
                     planetName = parentPlanet.userData.def.name;
                     moonIndex = def.index;
                 }
+            } else if (clickedObject.userData.isAsteroid) {
+                planetName = 'asteroid-belt';
+                moonIndex = clickedObject.userData.index;
             }
 
             openAddProjectModal(planetName, moonIndex, def.displayName);
