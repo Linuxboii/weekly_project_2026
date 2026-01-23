@@ -1244,7 +1244,7 @@ function checkPlanetHover() {
 
         // Check Planet
         const dist = Math.sqrt(Math.pow(planet.position.x - cursor.world.x, 2) + Math.pow(planet.position.y - cursor.world.y, 2));
-        const hitRadius = def.size + 0.8;
+        const hitRadius = def.size + (state.isMobile ? 1.3 : 0.8); // Larger touch targets on mobile
 
         // FIX: Check def.hasData instead of data.hasData 
         // UPDATE: Allow hover on empty planets for adding new projects
@@ -1260,7 +1260,8 @@ function checkPlanetHover() {
                 moon.getWorldPosition(moonPos);
 
                 const d = Math.sqrt(Math.pow(moonPos.x - cursor.world.x, 2) + Math.pow(moonPos.y - cursor.world.y, 2));
-                if (d < moon.userData.def.size + 0.5) {
+                const moonHitRadius = moon.userData.def.size + (state.isMobile ? 1.0 : 0.5);
+                if (d < moonHitRadius) {
                     hoveredPlanet = moon;
                 }
             });
@@ -1271,7 +1272,8 @@ function checkPlanetHover() {
     if (state.asteroids) {
         state.asteroids.forEach(asteroid => {
             const dist = Math.sqrt(Math.pow(asteroid.position.x - cursor.world.x, 2) + Math.pow(asteroid.position.y - cursor.world.y, 2));
-            if (dist < asteroid.userData.def.size + 0.3) {
+            const asteroidHitRadius = asteroid.userData.def.size + (state.isMobile ? 0.8 : 0.3);
+            if (dist < asteroidHitRadius) {
                 hoveredPlanet = asteroid;
             }
         });

@@ -854,4 +854,40 @@ body {
     .project-card {
         padding: 24px 20px;
     }
+
+    /* Mobile-optimized modals */
+    #sun-projects-modal {
+        max-width: 90%;
+        max-height: 80vh;
+        padding: 20px;
+    }
+
+    #sun-projects-modal .modal-title {
+        font-size: 12px;
+    }
+
+    #sun-projects-modal .modal-project-card {
+        padding: 14px 12px;
+        min-height: 56px;
+        /* Larger touch target */
+    }
+
+    /* Touch-friendly tooltip positioning */
+    #planet-tooltip {
+        max-width: 85vw !important;
+        font-size: 13px !important;
+    }
+
+    .header-actions {
+        gap: 8px;
+    }
+
+    .logout-btn span {
+        display: none;
+        /* Show only icon on very small screens */
+    }
+
+    .dashboard-footer {
+        font-size: 11px;
+    }
 }
