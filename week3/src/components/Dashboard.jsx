@@ -51,11 +51,12 @@ const Dashboard = ({ currentUser }) => {
                 await api.updateGoal(goalData.id, {
                     title: goalData.title,
                     description: goalData.description,
-                    deadline: goalData.deadline
+                    deadline: goalData.deadline,
+                    is_recurring: goalData.is_recurring
                 });
             } else {
                 // Create new goal
-                await api.createGoal(goalData.title, goalData.description, goalData.deadline);
+                await api.createGoal(goalData.title, goalData.description, goalData.deadline, goalData.is_recurring);
             }
             await fetchGoals();
             setIsModalOpen(false);

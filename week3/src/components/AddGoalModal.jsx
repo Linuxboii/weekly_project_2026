@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Calendar } from "lucide-react";
+import { X, Calendar, Repeat } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "./ui/Button";
 
@@ -7,11 +7,13 @@ const AddGoalModal = ({ isOpen, onClose, onAdd, goalToEdit = null }) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [deadline, setDeadline] = useState("");
+    const [isRecurring, setIsRecurring] = useState(false);
 
     useEffect(() => {
         if (goalToEdit) {
             setTitle(goalToEdit.title);
             setDescription(goalToEdit.description || "");
+            setIsRecurring(goalToEdit.is_recurring || false);
             // Format deadline for date input (YYYY-MM-DD)
             if (goalToEdit.deadline) {
                 const date = new Date(goalToEdit.deadline);
@@ -23,6 +25,7 @@ const AddGoalModal = ({ isOpen, onClose, onAdd, goalToEdit = null }) => {
             setTitle("");
             setDescription("");
             setDeadline("");
+            setIsRecurring(false);
         }
     }, [goalToEdit, isOpen]);
 
@@ -32,11 +35,13 @@ const AddGoalModal = ({ isOpen, onClose, onAdd, goalToEdit = null }) => {
             title,
             description,
             deadline: deadline || null,
+            is_recurring: isRecurring,
             id: goalToEdit?.id
         });
         setTitle("");
         setDescription("");
         setDeadline("");
+        setIsRecurring(false);
     };
 
     if (!isOpen) return null;
@@ -98,6 +103,28 @@ const AddGoalModal = ({ isOpen, onClose, onAdd, goalToEdit = null }) => {
                                 min={today}
                                 className="w-full px-3 py-2 bg-background border rounded-md focus:ring-2 focus:ring-primary"
                             />
+                        </div>
+
+                        {/* Recurring Toggle */}
+                        <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-md">
+                            <div className="flex items-center gap-2">
+                                <Repeat size={16} className={isRecurring ? "text-primary" : "text-muted-foreground"} />
+                                <div>
+                                    <span className="text-sm font-medium">Recurring Goal</span>
+                                    <p className="text-xs text-muted-foreground">
+                                        {isRecurring ? "Tracks daily streaks 🔥" : "One-time completion"}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsRecurring(!isRecurring)}
+                                className={`relative w-11 h-6 rounded-full transition-colors ${isRecurring ? "bg-primary" : "bg-muted"}`}
+                            >
+                                <span
+                                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${isRecurring ? "translate-x-5" : ""}`}
+                                />
+                            </button>
                         </div>
 
                         <div className="flex justify-end gap-3 pt-4">

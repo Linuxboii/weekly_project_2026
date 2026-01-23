@@ -75,11 +75,12 @@ export const api = {
         return response.data;
     },
 
-    async createGoal(title, description, deadline) {
-        // Description and deadline are optional
+    async createGoal(title, description, deadline, isRecurring = false) {
+        // Description, deadline, and is_recurring are optional
         const payload = { title };
         if (description) payload.description = description;
         if (deadline) payload.deadline = deadline;
+        payload.is_recurring = isRecurring;
 
         const response = await apiClient.post('/goals', payload);
         return response.data;
