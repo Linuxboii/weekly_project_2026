@@ -147,15 +147,33 @@ function Canvas({ canvas }) {
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (parsed.data && parsed.data.nodes && parsed.data.nodes.length > 0) {
-                    console.log('[Canvas] Using saved state from localStorage');
-                    return {
-                        nodes: parsed.data.nodes,
-                        edges: parsed.data.edges || []
-                    };
+                    // Validate that nodes have proper structure
+                    const isValid = parsed.data.nodes.every(node =>
+                        node.id &&
+                        node.type &&
+                        node.position &&
+                        typeof node.position.x === 'number' &&
+                        typeof node.position.y === 'number' &&
+                        node.data &&
+                        typeof node.data === 'object' &&
+                        node.data.label // Must have at least a label
+                    );
+
+                    if (isValid) {
+                        console.log('[Canvas] Using saved state from localStorage');
+                        return {
+                            nodes: parsed.data.nodes,
+                            edges: parsed.data.edges || []
+                        };
+                    } else {
+                        console.warn('[Canvas] Saved state has invalid nodes, clearing...');
+                        localStorage.removeItem('nexus_canvas_local');
+                    }
                 }
             }
         } catch (err) {
             console.log('[Canvas] Error loading saved state:', err);
+            localStorage.removeItem('nexus_canvas_local');
         }
         console.log('[Canvas] Using default initial nodes');
         return {
