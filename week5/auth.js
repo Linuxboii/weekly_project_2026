@@ -211,50 +211,59 @@ async function verifyToken(token) {
 }
 
 async function initProtectedPage() {
-    // Initialize theme first
-    initTheme();
+    try {
+        // Initialize theme first
+        initTheme();
 
-    // Check for token handoff from login page (cross-subdomain)
-    // If we just received a fresh token, skip verification (it was just issued)
-    const freshToken = checkUrlTokenHandoff();
+        // Check for token handoff from login page (cross-subdomain)
+        // If we just received a fresh token, skip verification (it was just issued)
+        const freshToken = checkUrlTokenHandoff();
 
-    const token = localStorage.getItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
+        const token = localStorage.getItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
+        console.log('[AuthGuard] Token found:', !!token);
 
-    // No token - redirect to login
-    if (!token && PROJECT_REQUIRES_AUTH) {
-        console.log('[AuthGuard] No token - redirecting to login');
-        redirectToLogin();
-        return;
-    }
+        // No token - redirect to login
+        if (!token && PROJECT_REQUIRES_AUTH) {
+            console.log('[AuthGuard] No token - redirecting to login');
+            redirectToLogin();
+            return;
+        }
 
-    // Public project - skip auth
-    if (!PROJECT_REQUIRES_AUTH) {
-        console.log('[AuthGuard] Public project - showing app');
+        // Public project - skip auth
+        if (!PROJECT_REQUIRES_AUTH) {
+            console.log('[AuthGuard] Public project - showing app');
+            showMainApp();
+            setupEventListeners();
+            return;
+        }
+
+        // Fresh token from login page - trust it, skip verification
+        if (freshToken) {
+            console.log('[AuthGuard] Fresh token from login - showing app');
+            showMainApp();
+            setupEventListeners();
+            return;
+        }
+
+        // Existing token - verify with backend
+        console.log('[AuthGuard] Verifying existing token...');
+        const result = await verifyToken(token);
+        console.log('[AuthGuard] Verification result:', result);
+
+        if (result.valid) {
+            console.log('[AuthGuard] Token valid - showing app');
+            showMainApp();
+            setupEventListeners();
+        } else {
+            console.log('[AuthGuard] Token invalid - redirecting to login');
+            localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
+            redirectToLogin();
+        }
+    } catch (error) {
+        console.error('[AuthGuard] Error during init:', error);
+        // On error, show the app anyway - backend will enforce auth
         showMainApp();
         setupEventListeners();
-        return;
-    }
-
-    // Fresh token from login page - trust it, skip verification
-    if (freshToken) {
-        console.log('[AuthGuard] Fresh token from login - showing app');
-        showMainApp();
-        setupEventListeners();
-        return;
-    }
-
-    // Existing token - verify with backend
-    console.log('[AuthGuard] Verifying existing token...');
-    const result = await verifyToken(token);
-
-    if (result.valid) {
-        console.log('[AuthGuard] Token valid - showing app');
-        showMainApp();
-        setupEventListeners();
-    } else {
-        console.log('[AuthGuard] Token invalid - redirecting to login');
-        localStorage.removeItem(AUTH_GUARD_CONFIG.AUTH_TOKEN_KEY);
-        redirectToLogin();
     }
 }
 
