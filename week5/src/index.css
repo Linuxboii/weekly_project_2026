@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Dark theme (default) */
+:root {
+    --bg-canvas: #0a0a0b;
+    --bg-surface: #111113;
+    --bg-elevated: #18181b;
+    --border-default: #222225;
+    --border-subtle: #2a2a2e;
+    --text-primary: #ffffff;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --primary: #ff6d5a;
+    --primary-hover: #ff8573;
+}
+
+/* Light theme */
+.light {
+    --bg-canvas: #f5f5f5;
+    --bg-surface: #ffffff;
+    --bg-elevated: #fafafa;
+    --border-default: #e5e5e5;
+    --border-subtle: #d4d4d4;
+    --text-primary: #18181b;
+    --text-secondary: #52525b;
+    --text-muted: #a1a1aa;
+}
+
+body {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+}
+
+/* Smooth scrollbar - Dark */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #3a3a3e;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4a4a4e;
+}
+
+/* React Flow overrides */
+.react-flow__edge-path {
+    stroke-width: 2px !important;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+    stroke: var(--primary) !important;
+}
+
+.react-flow__node {
+    cursor: grab;
+}
+
+.react-flow__node:active {
+    cursor: grabbing;
+}
+
+.react-flow__node.selected {
+    z-index: 10 !important;
+}
+
+/* Selection box */
+.react-flow__selection {
+    background: rgba(255, 109, 90, 0.08) !important;
+    border: 1px solid rgba(255, 109, 90, 0.4) !important;
+}
+
+/* Connection line */
+.react-flow__connection-line {
+    stroke: var(--primary) !important;
+    stroke-width: 2px !important;
+}
+
+/* Pane */
+.react-flow__pane {
+    cursor: default;
+}
+
+/* Attribution hidden */
+.react-flow__attribution {
+    display: none !important;
+}
+
+/* Smooth transitions */
+.react-flow__node,
+.react-flow__edge {
+    transition: opacity 0.2s ease;
+}
+
+/* Faded state for highlight mode */
+.react-flow__node.faded {
+    opacity: 0.2;
+}
+
+/* Handle animations */
+.react-flow__handle {
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.react-flow__handle:hover {
+    transform: scale(1.3);
+}
+
+/* MiniMap fixes */
+.react-flow__minimap {
+    border-radius: 8px !important;
+}
+
+/* Controls fixes */
+.react-flow__controls {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Node Category Colors */
+.node-core {
+    --node-accent: #10b981;
+}
+
+.node-module {
+    --node-accent: #8b5cf6;
+}
+
+.node-client {
+    --node-accent: #f59e0b;
+}
+
+/* Presentation mode styles */
+.presentation-mode .react-flow__controls,
+.presentation-mode .react-flow__minimap {
+    display: none !important;
+}
+
+/* Animations */
+@keyframes pulse-slow {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Edge flow animation */
+@keyframes edge-flow {
+    from {
+        stroke-dashoffset: 24;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.react-flow__edge.animated path {
+    animation: edge-flow 1s linear infinite;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Modern node effects */
+.react-flow__node:hover {
+    z-index: 5 !important;
+}
+
+/* Smooth delete button appearance */
+.react-flow__node button {
+    pointer-events: auto;
+}
+
+/* Node glassmorphism enhancement */
+.backdrop-blur-sm {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
