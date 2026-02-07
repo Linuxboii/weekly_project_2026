@@ -139,8 +139,34 @@ function Canvas({ canvas }) {
     } = useAppState();
 
     const reactFlowWrapper = useRef(null);
-    const [nodes, setNodes, onNodesChange] = useNodesState(createInitialNodes());
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+    // Load saved state from localStorage if available, otherwise use defaults
+    const getInitialState = () => {
+        try {
+            const saved = localStorage.getItem('nexus_canvas_local');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed.data && parsed.data.nodes && parsed.data.nodes.length > 0) {
+                    console.log('[Canvas] Using saved state from localStorage');
+                    return {
+                        nodes: parsed.data.nodes,
+                        edges: parsed.data.edges || []
+                    };
+                }
+            }
+        } catch (err) {
+            console.log('[Canvas] Error loading saved state:', err);
+        }
+        console.log('[Canvas] Using default initial nodes');
+        return {
+            nodes: createInitialNodes(),
+            edges: initialEdges
+        };
+    };
+
+    const initialState = useMemo(getInitialState, []);
+    const [nodes, setNodes, onNodesChange] = useNodesState(initialState.nodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(initialState.edges);
 
     const nodeTypes = useMemo(() => ({
         architecture: ArchitectureNode,
