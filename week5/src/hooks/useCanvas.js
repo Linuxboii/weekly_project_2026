@@ -75,7 +75,7 @@ export function useCanvas(canvasId) {
 
     /**
      * Save canvas to backend (manual save only)
-     * Falls back to localStorage if no canvasId (local development)
+     * Auto-creates a new canvas if no canvasId exists
      */
     const save = useCallback(async () => {
         setSaving(true);
@@ -88,23 +88,24 @@ export function useCanvas(canvasId) {
                 edges: getEdges()
             };
 
-            // If no canvas ID, save to localStorage (local dev mode)
-            if (!id) {
-                localStorage.setItem('nexus_canvas_local', JSON.stringify({
-                    name: name,
-                    version: version + 1,
-                    data: data,
-                    savedAt: new Date().toISOString()
-                }));
-                setVersion(v => v + 1);
-                setLastSavedAt(new Date().toISOString());
-                setHasUnsavedChanges(false);
-                console.log('[Canvas] Saved to localStorage (local mode)');
-                return true;
+            let canvasIdToSave = id;
+
+            // If no canvas ID, auto-create one first
+            if (!canvasIdToSave) {
+                console.log('[Canvas] No ID - creating new canvas...');
+                const createResult = await createCanvas(name);
+                canvasIdToSave = createResult.canvasId;
+                setId(canvasIdToSave);
+                setName(createResult.name);
+
+                // Update URL without page reload
+                const newUrl = `/canvas/${canvasIdToSave}`;
+                window.history.pushState({}, '', newUrl);
+                console.log('[Canvas] Created canvas:', canvasIdToSave);
             }
 
             // Save to backend
-            const result = await saveCanvas(id, data);
+            const result = await saveCanvas(canvasIdToSave, data);
 
             // Update version and state
             setVersion(result.version);
@@ -112,7 +113,7 @@ export function useCanvas(canvasId) {
             setHasUnsavedChanges(false);
             initialStateRef.current = JSON.stringify(data);
 
-            console.log('[Canvas] Saved:', name, 'v' + result.version);
+            console.log('[Canvas] Saved to backend:', name, 'v' + result.version);
             return true;
         } catch (err) {
             console.error('[Canvas] Save failed:', err);
@@ -125,7 +126,7 @@ export function useCanvas(canvasId) {
         } finally {
             setSaving(false);
         }
-    }, [id, name, version, getNodes, getEdges, getViewport]);
+    }, [id, name, getNodes, getEdges, getViewport]);
 
     /**
      * Create a new canvas
