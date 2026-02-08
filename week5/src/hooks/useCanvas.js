@@ -101,8 +101,8 @@ export function useCanvas(canvasId) {
                 console.log('[Canvas] Created canvas:', canvasIdToSave);
             }
 
-            // Save to backend
-            const result = await saveCanvas(canvasIdToSave, data);
+            // Save to backend (include name for rename support)
+            const result = await saveCanvas(canvasIdToSave, data, name);
 
             // Update version and state
             setVersion(result.version);

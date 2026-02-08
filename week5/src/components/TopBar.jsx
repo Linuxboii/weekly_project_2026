@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useAppState, CANVAS_MODES } from '../hooks/useAppState.jsx';
 import { useCanvasContext } from '../hooks/CanvasContext.jsx';
 import { useToast } from './Toast.jsx';
@@ -47,6 +47,45 @@ export default function TopBar() {
     const canvas = useCanvasContext();
     const { showToast } = useToast();
     const [showCanvasManager, setShowCanvasManager] = useState(false);
+
+    // Editable canvas name
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editName, setEditName] = useState('');
+    const nameInputRef = useRef(null);
+
+    // Focus input when editing starts
+    useEffect(() => {
+        if (isEditingName && nameInputRef.current) {
+            nameInputRef.current.focus();
+            nameInputRef.current.select();
+        }
+    }, [isEditingName]);
+
+    // Start editing name
+    const handleStartEditing = useCallback(() => {
+        if (canvas) {
+            setEditName(canvas.name || 'Untitled Canvas');
+            setIsEditingName(true);
+        }
+    }, [canvas]);
+
+    // Save name change
+    const handleSaveName = useCallback(() => {
+        if (canvas && editName.trim() && editName.trim() !== canvas.name) {
+            canvas.setName(editName.trim());
+            canvas.markDirty();
+        }
+        setIsEditingName(false);
+    }, [canvas, editName]);
+
+    // Handle key press in name input
+    const handleNameKeyDown = useCallback((e) => {
+        if (e.key === 'Enter') {
+            handleSaveName();
+        } else if (e.key === 'Escape') {
+            setIsEditingName(false);
+        }
+    }, [handleSaveName]);
 
     // Handle save with toast notification
     const handleSave = useCallback(async () => {
@@ -145,7 +184,39 @@ export default function TopBar() {
                                 alignItems: 'center',
                                 gap: '6px'
                             }}>
-                                {canvas?.name || 'AvlokAi'}
+                                {isEditingName ? (
+                                    <input
+                                        ref={nameInputRef}
+                                        type="text"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        onBlur={handleSaveName}
+                                        onKeyDown={handleNameKeyDown}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            background: isDark ? '#222' : '#f5f5f5',
+                                            border: `1px solid ${isDark ? '#444' : '#ddd'}`,
+                                            borderRadius: '4px',
+                                            padding: '2px 6px',
+                                            fontSize: '14px',
+                                            fontWeight: 700,
+                                            color: isDark ? '#fff' : '#111',
+                                            outline: 'none',
+                                            width: '150px'
+                                        }}
+                                    />
+                                ) : (
+                                    <span
+                                        onDoubleClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStartEditing();
+                                        }}
+                                        title="Double-click to rename"
+                                        style={{ cursor: 'text' }}
+                                    >
+                                        {canvas?.name || 'AvlokAi'}
+                                    </span>
+                                )}
                                 {canvas?.hasUnsavedChanges && (
                                     <span style={{ color: '#f59e0b', fontSize: '16px' }} title="Unsaved changes">●</span>
                                 )}

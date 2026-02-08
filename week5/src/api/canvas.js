@@ -122,12 +122,17 @@ export async function loadCanvas(canvasId) {
  * Save canvas state (manual save only)
  * @param {string} canvasId - Canvas ID
  * @param {object} data - Canvas state {viewport, nodes, edges}
+ * @param {string} [name] - Optional new canvas name
  * @returns {Promise<{canvasId: string, version: number, savedAt: string}>}
  */
-export async function saveCanvas(canvasId, data) {
+export async function saveCanvas(canvasId, data, name = null) {
+    const body = { data };
+    if (name) {
+        body.name = name;
+    }
     return apiRequest(`/api/canvas/${canvasId}/save`, {
         method: 'POST',
-        body: JSON.stringify({ data })
+        body: JSON.stringify(body)
     });
 }
 
