@@ -1,9 +1,25 @@
 // Canvas API client
-// Backend base URL: https://backend.avlokai.com (or http://localhost:3567 in dev)
+// Backend base URL: https://backend.avlokai.com
 
-const API_BASE_URL = import.meta.env.DEV
-    ? 'http://localhost:3567'
-    : 'https://backend.avlokai.com';
+const API_BASE_URL = 'https://backend.avlokai.com';
+
+// Track auth failure state - stop API calls after auth failure
+let authFailed = false;
+
+/**
+ * Reset auth state (call after successful login)
+ */
+export function resetAuthState() {
+    authFailed = false;
+}
+
+/**
+ * Check if auth has failed
+ * @returns {boolean}
+ */
+export function hasAuthFailed() {
+    return authFailed;
+}
 
 /**
  * Get auth token from localStorage
@@ -11,7 +27,9 @@ const API_BASE_URL = import.meta.env.DEV
  */
 function getAuthToken() {
     // Use auth_token key (same as auth.js)
-    return localStorage.getItem('auth_token');
+    const token = localStorage.getItem('auth_token');
+    console.log('[Canvas API] Token from localStorage:', token ? `${token.substring(0, 20)}...` : 'null');
+    return token;
 }
 
 /**
@@ -21,11 +39,19 @@ function getAuthToken() {
  * @returns {Promise<object>} Response data
  */
 async function apiRequest(endpoint, options = {}) {
+    // Stop all API calls after auth failure
+    if (authFailed) {
+        throw { status: 403, message: 'Session expired. Please log in again.' };
+    }
+
     const token = getAuthToken();
 
     if (!token) {
+        authFailed = true;
         throw { status: 401, message: 'No auth token found' };
     }
+
+    console.log('[Canvas API] Request:', options.method || 'GET', endpoint);
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
@@ -36,6 +62,8 @@ async function apiRequest(endpoint, options = {}) {
         }
     });
 
+    console.log('[Canvas API] Response status:', response.status);
+
     if (!response.ok) {
         const error = { status: response.status };
         try {
@@ -43,6 +71,26 @@ async function apiRequest(endpoint, options = {}) {
         } catch {
             error.message = response.statusText;
         }
+
+        // Handle auth failures - stop further API calls
+        if (response.status === 401) {
+            authFailed = true;
+            console.error('[Canvas API] 401 Unauthorized - redirecting to login');
+            // Redirect to login
+            if (window.logout) {
+                window.logout();
+            }
+            throw error;
+        }
+
+        if (response.status === 403) {
+            authFailed = true;
+            console.error('[Canvas API] 403 Forbidden - session expired');
+            // Clear token
+            localStorage.removeItem('auth_token');
+            throw error;
+        }
+
         throw error;
     }
 

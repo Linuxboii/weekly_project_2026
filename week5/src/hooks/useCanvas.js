@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useReactFlow } from 'reactflow';
-import { loadCanvas, saveCanvas, createCanvas, getErrorMessage, requiresLogin } from '../api/canvas';
+import { loadCanvas, saveCanvas, createCanvas, getErrorMessage, requiresLogin, listCanvases, getVersionHistory } from '../api/canvas';
 
 /**
  * Custom hook for managing canvas state with backend persistence
@@ -63,11 +63,8 @@ export function useCanvas(canvasId) {
         } catch (err) {
             console.error('[Canvas] Load failed:', err);
             setError(getErrorMessage(err));
-
-            if (requiresLogin(err)) {
-                // Redirect to login - customize this based on your auth setup
-                window.location.href = '/login';
-            }
+            // Don't auto-redirect - let auth guard handle session issues
+            // Just show the error to the user
         } finally {
             setLoading(false);
         }
@@ -118,10 +115,7 @@ export function useCanvas(canvasId) {
         } catch (err) {
             console.error('[Canvas] Save failed:', err);
             setError(getErrorMessage(err));
-
-            if (requiresLogin(err)) {
-                window.location.href = '/login';
-            }
+            // Don't auto-redirect - let auth guard handle session issues
             return false;
         } finally {
             setSaving(false);
@@ -153,10 +147,7 @@ export function useCanvas(canvasId) {
         } catch (err) {
             console.error('[Canvas] Create failed:', err);
             setError(getErrorMessage(err));
-
-            if (requiresLogin(err)) {
-                window.location.href = '/login';
-            }
+            // Don't auto-redirect - let auth guard handle session issues
             return null;
         } finally {
             setLoading(false);

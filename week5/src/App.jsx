@@ -118,6 +118,8 @@ const initialEdges = [
     }
 ];
 
+import { useToast } from './components/Toast.jsx';
+
 function Canvas({ canvas }) {
     const {
         theme,
@@ -139,6 +141,36 @@ function Canvas({ canvas }) {
     } = useAppState();
 
     const reactFlowWrapper = useRef(null);
+
+    // Track Ctrl key for canvas panning with Ctrl+left-click
+    const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Control') {
+                setIsCtrlPressed(true);
+            }
+        };
+        const handleKeyUp = (e) => {
+            if (e.key === 'Control') {
+                setIsCtrlPressed(false);
+            }
+        };
+        // Also handle blur to reset when window loses focus
+        const handleBlur = () => {
+            setIsCtrlPressed(false);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('blur', handleBlur);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, []);
 
     // Load saved state from localStorage if available, otherwise use defaults
     const getInitialState = () => {
@@ -194,14 +226,21 @@ function Canvas({ canvas }) {
     // Simple undo history - stores snapshots before deletions
     const undoStack = useRef([]);
 
+    const { showToast } = useToast();
+
     // Keyboard shortcuts: Delete, Undo, and Save
     useEffect(() => {
-        const handleKeyDown = (event) => {
+        const handleKeyDown = async (event) => {
             // Save: Ctrl+S
             if ((event.ctrlKey || event.metaKey) && event.key === 's') {
                 event.preventDefault();
                 if (canvas.hasUnsavedChanges) {
-                    canvas.save();
+                    const success = await canvas.save();
+                    if (success) {
+                        showToast(`Saved v${canvas.version + 1}`, 'success');
+                    } else {
+                        showToast(canvas.error || 'Failed to save', 'error');
+                    }
                 }
                 return;
             }
@@ -343,15 +382,19 @@ function Canvas({ canvas }) {
     return (
         <div
             ref={reactFlowWrapper}
-            style={{ width: '100%', height: '100%' }}
+            style={{
+                width: '100%',
+                height: '100%',
+                cursor: isCtrlPressed ? 'grab' : 'default'
+            }}
         >
             <ReactFlow
                 nodes={processedNodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                onNodesChange={handleNodesChange}
+                onEdgesChange={handleEdgesChange}
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
                 onPaneClick={onPaneClick}
@@ -360,9 +403,9 @@ function Canvas({ canvas }) {
                 fitView
                 snapToGrid={snapToGrid}
                 snapGrid={[20, 20]}
-                selectionOnDrag={!isPresentationMode}
+                selectionOnDrag={!isPresentationMode && !isCtrlPressed}
                 selectionMode={SelectionMode.Partial}
-                panOnDrag={isPresentationMode ? false : [1, 2]}
+                panOnDrag={isPresentationMode ? false : (isCtrlPressed ? [0, 1, 2] : [1, 2])}
                 panOnScroll={false}
                 zoomOnScroll={!isPresentationMode}
                 nodesDraggable={!isPresentationMode}
@@ -472,12 +515,16 @@ function Canvas({ canvas }) {
     );
 }
 
+import { ToastProvider } from './components/Toast.jsx';
+
 export default function App() {
     return (
         <ReactFlowProvider>
-            <AppStateProvider>
-                <CanvasApp />
-            </AppStateProvider>
+            <ToastProvider>
+                <AppStateProvider>
+                    <CanvasApp />
+                </AppStateProvider>
+            </ToastProvider>
         </ReactFlowProvider>
     );
 }

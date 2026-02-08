@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useAppState, CANVAS_MODES } from '../hooks/useAppState.jsx';
 import { useCanvasContext } from '../hooks/CanvasContext.jsx';
+import { useToast } from './Toast.jsx';
+import CanvasManager from './CanvasManager.jsx';
 import {
     Zap,
     PanelLeftClose,
@@ -15,7 +17,8 @@ import {
     Layers,
     Users,
     Save,
-    Loader2
+    Loader2,
+    ChevronDown
 } from 'lucide-react';
 
 const modeOptions = [
@@ -42,6 +45,20 @@ export default function TopBar() {
 
     // Canvas persistence state
     const canvas = useCanvasContext();
+    const { showToast } = useToast();
+    const [showCanvasManager, setShowCanvasManager] = useState(false);
+
+    // Handle save with toast notification
+    const handleSave = useCallback(async () => {
+        if (!canvas || !canvas.hasUnsavedChanges) return;
+
+        const success = await canvas.save();
+        if (success) {
+            showToast(`Saved v${canvas.version + 1}`, 'success');
+        } else {
+            showToast(canvas.error || 'Failed to save', 'error');
+        }
+    }, [canvas, showToast]);
 
     const isPresentationMode = canvasMode === CANVAS_MODES.PRESENTATION;
     const isDark = theme === 'dark';
@@ -90,48 +107,74 @@ export default function TopBar() {
                     </button>
                 )}
 
-                {/* Logo */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 8px' }}>
-                    <div style={{
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '8px',
-                        background: 'linear-gradient(135deg, #f97316, #dc2626)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
-                    }}>
-                        <Zap size={14} color="#fff" />
-                    </div>
-                    <div>
-                        <div style={{
-                            fontWeight: 700,
-                            fontSize: '14px',
-                            color: isDark ? '#fff' : '#111',
+                {/* Logo - Clickable to open Canvas Manager */}
+                <div style={{ position: 'relative' }}>
+                    <div
+                        onClick={() => setShowCanvasManager(!showCanvasManager)}
+                        style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
-                        }}>
-                            {canvas?.name || 'AvlokAi'}
-                            {canvas?.hasUnsavedChanges && (
-                                <span style={{ color: '#f59e0b', fontSize: '16px' }} title="Unsaved changes">●</span>
-                            )}
-                        </div>
+                            gap: '10px',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s',
+                            background: showCanvasManager ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)') : 'transparent'
+                        }}
+                        onMouseOver={(e) => !showCanvasManager && (e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)')}
+                        onMouseOut={(e) => !showCanvasManager && (e.currentTarget.style.background = 'transparent')}
+                    >
                         <div style={{
-                            fontSize: '10px',
-                            color: isDark ? '#6b7280' : '#9ca3af',
-                            marginTop: '-2px'
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #f97316, #dc2626)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
                         }}>
-                            {canvas?.version ? `v${canvas.version}` : 'Dashboard'}
+                            <Zap size={14} color="#fff" />
                         </div>
+                        <div>
+                            <div style={{
+                                fontWeight: 700,
+                                fontSize: '14px',
+                                color: isDark ? '#fff' : '#111',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                            }}>
+                                {canvas?.name || 'AvlokAi'}
+                                {canvas?.hasUnsavedChanges && (
+                                    <span style={{ color: '#f59e0b', fontSize: '16px' }} title="Unsaved changes">●</span>
+                                )}
+                            </div>
+                            <div style={{
+                                fontSize: '10px',
+                                color: isDark ? '#6b7280' : '#9ca3af',
+                                marginTop: '-2px'
+                            }}>
+                                {canvas?.version ? `v${canvas.version}` : 'Dashboard'}
+                            </div>
+                        </div>
+                        <ChevronDown size={14} style={{
+                            color: isDark ? '#6b7280' : '#9ca3af',
+                            transform: showCanvasManager ? 'rotate(180deg)' : 'rotate(0)',
+                            transition: 'transform 0.2s'
+                        }} />
                     </div>
+
+                    {/* Canvas Manager Dropdown */}
+                    {showCanvasManager && (
+                        <CanvasManager onClose={() => setShowCanvasManager(false)} />
+                    )}
                 </div>
 
                 {/* Save Button */}
                 {canvas && !isPresentationMode && (
                     <button
-                        onClick={canvas.save}
+                        onClick={handleSave}
                         disabled={canvas.saving || !canvas.hasUnsavedChanges}
                         style={{
                             display: 'flex',
@@ -159,6 +202,27 @@ export default function TopBar() {
                         )}
                         {canvas.saving ? 'Saving...' : 'Save'}
                     </button>
+                )}
+
+                {/* Error Display */}
+                {canvas?.error && (
+                    <div
+                        onClick={canvas.clearError}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(239,68,68,0.1)',
+                            color: '#ef4444',
+                            fontSize: '11px',
+                            cursor: 'pointer'
+                        }}
+                        title="Click to dismiss"
+                    >
+                        {canvas.error}
+                    </div>
                 )}
             </div>
 
