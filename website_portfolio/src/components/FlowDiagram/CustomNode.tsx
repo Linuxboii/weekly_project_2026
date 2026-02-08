@@ -1,7 +1,7 @@
 'use client'
 
 import { memo } from 'react'
-import { Handle, Position, NodeProps, Node } from '@xyflow/react'
+import { Handle, Position } from '@xyflow/react'
 import { motion } from 'framer-motion'
 
 export type NodeType = 'trigger' | 'logic' | 'ai' | 'data' | 'output'
@@ -20,7 +20,12 @@ const nodeStyles: Record<NodeType, { icon: string; color: string; bg: string }> 
     output: { icon: '📤', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },
 }
 
-function CustomNode({ data, selected }: NodeProps<Node<CustomNodeData>>) {
+interface CustomNodeProps {
+    data: CustomNodeData
+    selected?: boolean
+}
+
+function CustomNode({ data, selected }: CustomNodeProps) {
     const style = nodeStyles[data.type]
 
     return (
