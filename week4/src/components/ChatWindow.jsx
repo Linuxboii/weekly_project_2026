@@ -1,14 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, MoreVertical, Search, Paperclip, Smile, Zap, ZapOff, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import { getMessages, sendMessage as apiSendMessage, getAiHoldStatus, getAiStatus, POLLING_INTERVALS } from '../services/api';
+import { getMessages, sendMessage as apiSendMessage, getAiHoldStatus, getAiStatus, POLLING_INTERVALS, sendImageToN8n } from '../services/api';
+
+// -----------------------------------------------------------------------------
+// MODULE-LEVEL CACHE (Runtime Only - Clears on Refresh)
+// -----------------------------------------------------------------------------
+const sentImageFingerprints = new Set();
+const imagePreviewBuffer = [];
+
+function generateImageFingerprint(file) {
+    return `${file.name}-${file.size}-${file.lastModified}`;
+}
+// -----------------------------------------------------------------------------
 
 const ChatWindow = ({ conversation, onUpdateStatus }) => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
+    const [tempImages, setTempImages] = useState([]); // Local state for UI re-renders
     const [aiHold, setAiHold] = useState({ ai_on_hold: false, remaining_seconds: 0 });
     const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const fetchMessages = async () => {
         try {
@@ -53,6 +66,74 @@ const ChatWindow = ({ conversation, onUpdateStatus }) => {
         }
     };
 
+    // -------------------------------------------------------------------------
+    // IMAGE HANDLING LOGIC
+    // -------------------------------------------------------------------------
+    const handleImageSelect = (e) => {
+        if (!e.target.files) return;
+
+        const files = Array.from(e.target.files);
+        let hasUpdates = false;
+
+        for (const file of files) {
+            const fingerprint = generateImageFingerprint(file);
+
+            // 1. Prevent Duplicates (Session-based)
+            if (sentImageFingerprints.has(fingerprint)) {
+                alert(`Image "${file.name}" was already sent in this session.`);
+                continue;
+            }
+
+            // check if already in queue (to avoid double processing if user selects same file twice quickly)
+            if (imagePreviewBuffer.some(img => img.fingerprint === fingerprint)) {
+                continue;
+            }
+
+            // 2. Create Preview
+            const previewUrl = URL.createObjectURL(file);
+            const imageEntry = {
+                fingerprint,
+                previewUrl,
+                sentAt: Date.now(),
+                status: 'uploading', // uploading -> sending_webhook -> sent
+                file
+            };
+
+            imagePreviewBuffer.push(imageEntry);
+            hasUpdates = true;
+
+            // 3. Trigger Send Flow
+            processImageSend(imageEntry);
+        }
+
+        if (hasUpdates) {
+            setTempImages([...imagePreviewBuffer]);
+            // Clear input so same file can be selected again if it wasn't valid, 
+            // but here we block duplicates anyway. Good practice to reset though.
+            e.target.value = '';
+        }
+    };
+
+    const processImageSend = async (imageEntry) => {
+        try {
+            imageEntry.status = 'sending_webhook';
+            setTempImages([...imagePreviewBuffer]);
+
+            // A. Send to n8n (Direct Binary)
+            await sendImageToN8n(conversation.mobile_number, imageEntry.file);
+
+            // B. Mark as Sent
+            sentImageFingerprints.add(imageEntry.fingerprint);
+            imageEntry.status = 'sent';
+            setTempImages([...imagePreviewBuffer]);
+
+        } catch (err) {
+            console.error('Image send failed:', err);
+            imageEntry.status = 'error';
+            setTempImages([...imagePreviewBuffer]);
+        }
+    };
+
 
     useEffect(() => {
         fetchMessages();
@@ -68,7 +149,7 @@ const ChatWindow = ({ conversation, onUpdateStatus }) => {
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+    }, [messages, tempImages]); // Scroll on temp images too
 
     return (
         <div className="chat-window">
@@ -117,12 +198,49 @@ const ChatWindow = ({ conversation, onUpdateStatus }) => {
                         </div>
                     </div>
                 ))}
+
+                {/* TEMPORARY IMAGES (Runtime Only) */}
+                {tempImages.map((img) => (
+                    <div key={img.fingerprint} className="message-row out">
+                        <div className="message-bubble image-bubble" style={{ padding: '4px', overflow: 'hidden', minWidth: '200px' }}>
+                            <img
+                                src={img.previewUrl}
+                                alt="Shared content"
+                                style={{ maxWidth: '100%', borderRadius: '8px', display: 'block' }}
+                            />
+                            <div className="message-time" style={{ padding: '0 8px 4px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>{format(new Date(img.sentAt), 'HH:mm')}</span>
+                                <span style={{ fontSize: '10px', opacity: 0.8 }}>
+                                    {img.status === 'sent' ? '✓ Sent' : img.status === 'error' ? '⚠ Failed' : '...'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+
                 <div ref={messagesEndRef} />
             </div>
 
             <form className="chat-footer" onSubmit={sendMessage}>
                 <button type="button" className="icon-btn"><Smile size={20} /></button>
-                <button type="button" className="icon-btn"><Paperclip size={20} /></button>
+
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                />
+                <button
+                    type="button"
+                    className="icon-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Send Image"
+                >
+                    <Paperclip size={20} />
+                </button>
+
                 <input
                     type="text"
                     className="message-input"

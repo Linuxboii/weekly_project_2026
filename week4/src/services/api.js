@@ -12,6 +12,7 @@
 
 // Backend API base URL
 const API_BASE_URL = 'https://backend.avlokai.com/api';
+const N8N_IMAGE_WEBHOOK = 'https://n8n.avlokai.com/webhook-test/test-image';
 
 /**
  * Determine the correct login URL based on environment
@@ -143,6 +144,22 @@ export async function sendMessage(mobileNumber, content) {
  */
 export async function getAiHoldStatus(conversationId) {
     return fetchWithAuth(`/conversations/${conversationId}/ai-hold-status`);
+}
+
+/**
+ * Send image binary directly to n8n webhook
+ * @param {string} mobileNumber - The user's mobile number
+ * @param {File} file - The image file object
+ */
+export async function sendImageToN8n(mobileNumber, file) {
+    const formData = new FormData();
+    formData.append('mobile_number', mobileNumber);
+    formData.append('file', file);
+
+    return fetch(N8N_IMAGE_WEBHOOK, {
+        method: 'POST',
+        body: formData
+    });
 }
 
 /**

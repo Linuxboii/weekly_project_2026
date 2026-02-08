@@ -19,3 +19,9 @@ directives/
 execution/
 node_modules/
 .vscode
+auth-server.js
+src_backend
+backend.js
+backend_new.js
+website_portfolio.zip
+website_portfolio_new.zip
