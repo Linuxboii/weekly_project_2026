@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: #0a0a0b;
+    --foreground: #fafafa;
+    --accent: #10b981;
+    --accent-dim: #059669;
+    --muted: #71717a;
+    --border: #27272a;
+    --card: #18181b;
+    --card-hover: #1f1f23;
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html,
+body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+body {
+    color: var(--foreground);
+    background: var(--background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--muted);
+}
+
+/* Utility classes */
+.gradient-text {
+    background: linear-gradient(135deg, var(--accent) 0%, #34d399 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.glass-card {
+    background: rgba(24, 24, 27, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+}
+
+/* Animated grid background */
+.animated-grid {
+    background-image:
+        linear-gradient(rgba(39, 39, 42, 0.4) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(39, 39, 42, 0.4) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridMove 20s linear infinite;
+}
+
+@keyframes gridMove {
+    0% {
+        background-position: 0 0;
+    }
+
+    100% {
+        background-position: 60px 60px;
+    }
+}
+
+/* React Flow custom styles */
+.react-flow__node {
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.react-flow__edge-path {
+    stroke: var(--accent);
+    stroke-width: 2;
+}
+
+.react-flow__controls {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.react-flow__controls-button {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    fill: var(--foreground);
+}
+
+.react-flow__controls-button:hover {
+    background: var(--card-hover);
+}
+
+.react-flow__minimap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+/* Focus states */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Selection color */
+::selection {
+    background: rgba(16, 185, 129, 0.3);
+}
