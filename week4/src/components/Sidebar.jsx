@@ -13,6 +13,7 @@ const Sidebar = ({ conversations, activeId, onSelect, loading }) => {
         <div className="sidebar">
             <div className="sidebar-header">
                 <div className="header-actions" style={{ display: 'flex', gap: '4px' }}>
+                    <img src="/avlokai_logo.png" alt="Avlok AI" className="sidebar-logo" style={{ height: '24px', marginRight: 'auto', marginLeft: '12px' }} />
                     <button className="icon-btn" title="Settings"><Settings size={18} /></button>
                 </div>
             </div>

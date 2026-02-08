@@ -23,7 +23,13 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en">
-            <body className="min-h-screen bg-background text-foreground">
+            <body className="min-h-screen bg-background text-foreground relative">
+                {/* Avlok AI Logo */}
+                <img
+                    src="/avlokai_logo.png"
+                    alt="Avlok AI Logo"
+                    className="fixed top-5 left-5 w-[40px] z-[9999]"
+                />
                 {children}
             </body>
         </html>

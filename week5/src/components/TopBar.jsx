@@ -164,16 +164,12 @@ export default function TopBar() {
                         onMouseOut={(e) => !showCanvasManager && (e.currentTarget.style.background = 'transparent')}
                     >
                         <div style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '8px',
-                            background: 'linear-gradient(135deg, #f97316, #dc2626)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(249, 115, 22, 0.3)'
+                            marginRight: '8px'
                         }}>
-                            <Zap size={14} color="#fff" />
+                            <img src="/avlokai_logo.png" alt="Avlok AI" style={{ height: '28px', width: 'auto' }} />
                         </div>
                         <div>
                             <div style={{
