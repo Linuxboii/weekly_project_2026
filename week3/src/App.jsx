@@ -43,8 +43,8 @@ const Navbar = ({ activeTab, setActiveTab, onLogout, username }) => (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16 items-center">
                     <div className="flex items-center">
-                        <div className="flex-shrink-0 font-bold text-2xl tracking-tighter bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                            AvlokAI
+                        <div className="flex-shrink-0">
+                            <img src="avlokai_logo.png" alt="Avlok AI" className="h-16 w-auto" style={{ filter: 'invert(1)' }} />
                         </div>
                         <div className="ml-10 flex space-x-8">
                             <button
@@ -103,8 +103,8 @@ const Navbar = ({ activeTab, setActiveTab, onLogout, username }) => (
 
         {/* Mobile Top Header */}
         <div className="sm:hidden flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-md sticky top-0 z-40 border-b border-border/50">
-            <div className="font-bold text-xl tracking-tighter bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                AvlokAI
+            <div className="flex-shrink-0">
+                <img src="avlokai_logo.png" alt="Avlok AI" className="h-14 w-auto" style={{ filter: 'invert(1)' }} />
             </div>
             <div className="flex items-center gap-2">
                 <button
@@ -282,9 +282,7 @@ function App() {
             <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
                 <div className="w-full max-w-md">
                     <div className="text-center mb-8">
-                        <div className="font-bold text-4xl tracking-tighter bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
-                            AvlokAI
-                        </div>
+                        <img src="avlokai_logo.png" alt="Avlok AI" className="h-20 w-auto mx-auto mb-4" style={{ filter: 'invert(1)' }} />
                         <p className="text-muted-foreground">Master your habits, master your life.</p>
                     </div>
                     {authView === "login" ? (
