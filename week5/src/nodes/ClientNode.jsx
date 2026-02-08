@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position, useReactFlow } from 'reactflow';
 import clsx from 'clsx';
-import { NODE_STATUS, NODE_CATEGORIES } from '../data/nodeData';
+import { NODE_STATUS, NODE_CATEGORIES, getNodeTemplate } from '../data/nodeData';
 import { Package, X } from 'lucide-react';
 
 const ClientNode = ({ id, data, selected }) => {
@@ -10,11 +10,15 @@ const ClientNode = ({ id, data, selected }) => {
     const {
         label,
         description,
-        icon: Icon = Package,
+        templateId,
         status = NODE_STATUS.ACTIVE,
         clientName,
         faded = false
     } = data;
+
+    // Look up icon from template (icons can't be serialized to JSON)
+    const template = templateId ? getNodeTemplate(templateId) : null;
+    const Icon = template?.icon || Package;
 
     const category = NODE_CATEGORIES.CLIENT;
 

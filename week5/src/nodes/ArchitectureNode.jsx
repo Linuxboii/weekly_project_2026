@@ -1,8 +1,8 @@
 import React, { memo } from 'react';
 import { Handle, Position, useReactFlow } from 'reactflow';
 import clsx from 'clsx';
-import { X } from 'lucide-react';
-import { NODE_STATUS } from '../data/nodeData';
+import { X, Box } from 'lucide-react';
+import { NODE_STATUS, getNodeTemplate } from '../data/nodeData';
 
 const ArchitectureNode = ({ id, data, selected }) => {
     const { setNodes, setEdges } = useReactFlow();
@@ -10,13 +10,17 @@ const ArchitectureNode = ({ id, data, selected }) => {
     const {
         label,
         description,
-        icon: Icon,
+        templateId,
         category,
         status = NODE_STATUS.ACTIVE,
         inputs = [],
         outputs = [],
         faded = false
     } = data;
+
+    // Look up icon from template (icons can't be serialized to JSON)
+    const template = templateId ? getNodeTemplate(templateId) : null;
+    const Icon = template?.icon || Box;
 
     const handleDelete = (e) => {
         e.stopPropagation();
