@@ -95,8 +95,8 @@ export function useCanvas(canvasId) {
                 setId(canvasIdToSave);
                 setName(createResult.name);
 
-                // Update URL without page reload
-                const newUrl = `/canvas/${canvasIdToSave}`;
+                // Update URL without page reload (using query param)
+                const newUrl = `${window.location.pathname}?canvas=${canvasIdToSave}`;
                 window.history.pushState({}, '', newUrl);
                 console.log('[Canvas] Created canvas:', canvasIdToSave);
             }

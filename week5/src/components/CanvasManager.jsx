@@ -89,11 +89,8 @@ export default function CanvasManager({ onClose }) {
         try {
             const newId = await canvas.create(newCanvasName.trim());
             if (newId) {
-                // Update URL
-                window.history.pushState({}, '', `/canvas/${newId}`);
-                onClose();
-                // Reload page to load the new canvas
-                window.location.reload();
+                // Navigate to new canvas using query parameter
+                window.location.href = `${window.location.pathname}?canvas=${newId}`;
             }
         } catch (err) {
             setError('Failed to create canvas');
@@ -108,8 +105,8 @@ export default function CanvasManager({ onClose }) {
                 return;
             }
         }
-        // Navigate to the canvas
-        window.location.href = `/canvas/${canvasId}`;
+        // Navigate to the canvas using query parameter (more deployment-friendly)
+        window.location.href = `${window.location.pathname}?canvas=${canvasId}`;
     };
 
     const formatDate = (dateStr) => {

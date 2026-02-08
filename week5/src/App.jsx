@@ -531,10 +531,15 @@ export default function App() {
 
 // Wrapper component to access canvas hook inside ReactFlowProvider
 function CanvasApp() {
-    // Get canvasId from URL if present
+    // Get canvasId from URL - supports both path (/canvas/:id) and query param (?canvas=id)
     const canvasIdFromUrl = useMemo(() => {
-        const match = window.location.pathname.match(/\/canvas\/([^/]+)/);
-        return match ? match[1] : null;
+        // First try path-based route
+        const pathMatch = window.location.pathname.match(/\/canvas\/([^/]+)/);
+        if (pathMatch) return pathMatch[1];
+
+        // Fallback to query parameter
+        const params = new URLSearchParams(window.location.search);
+        return params.get('canvas') || null;
     }, []);
 
     const canvas = useCanvas(canvasIdFromUrl);
