@@ -233,7 +233,24 @@ function setLoading(isLoading) {
 
 if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
-window.addEventListener('load', initLoginPage);
+// Theme & Password Toggles
+if (passwordToggleBtn && passwordInput) {
+    passwordToggleBtn.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
 
-// Theme & Password Toggles (Preserved)
-// ... (Keeping existing theme/password logic if needed, simplified here for brevity)
+        // Toggle icons
+        const eyeOpen = passwordToggleBtn.querySelector('.eye-open');
+        const eyeClosed = passwordToggleBtn.querySelector('.eye-closed');
+
+        if (type === 'text') {
+            eyeOpen.classList.add('hidden');
+            eyeClosed.classList.remove('hidden');
+            passwordToggleBtn.setAttribute('aria-label', 'Hide password');
+        } else {
+            eyeOpen.classList.remove('hidden');
+            eyeClosed.classList.add('hidden');
+            passwordToggleBtn.setAttribute('aria-label', 'Show password');
+        }
+    });
+}
