@@ -13,7 +13,6 @@ export default function Skills() {
   return (
     <section id="skills" className="py-24 px-6">
       <div className="max-w-6xl mx-auto">
-        <p className="text-[#3b82f6] font-mono text-sm tracking-widest uppercase mb-3">Skills</p>
         <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-12">
           What I <span className="gradient-text">Bring</span>
         </h2>

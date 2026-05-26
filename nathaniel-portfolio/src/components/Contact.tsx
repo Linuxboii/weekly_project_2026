@@ -4,7 +4,6 @@ export default function Contact() {
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#3b82f6]/5 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto text-center relative z-10">
-        <p className="text-[#3b82f6] font-mono text-sm tracking-widest uppercase mb-3">Contact</p>
         <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
           Let's build something <span className="gradient-text">together.</span>
         </h2>

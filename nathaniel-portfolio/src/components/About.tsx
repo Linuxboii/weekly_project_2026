@@ -8,8 +8,6 @@ export default function About() {
   return (
     <section id="about" className="py-24 px-6">
       <div className="max-w-6xl mx-auto">
-        <p className="text-[#3b82f6] font-mono text-sm tracking-widest uppercase mb-3">About</p>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-5">
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">

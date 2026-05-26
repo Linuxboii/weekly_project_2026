@@ -10,10 +10,7 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto w-full flex flex-col lg:flex-row items-center gap-12 relative z-10 py-16">
         {/* Left: Text */}
         <div className="flex-1 space-y-6 order-2 lg:order-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-[#71717a]">
-            <span className="w-2 h-2 rounded-full bg-[#3b82f6] animate-pulse flex-shrink-0" />
-            CRO @ AvlokAI
-          </div>
+          <p className="text-sm font-medium text-[#3b82f6] tracking-wide">Chief Revenue Officer · AvlokAI</p>
 
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white leading-tight">
             Nathaniel<br />
