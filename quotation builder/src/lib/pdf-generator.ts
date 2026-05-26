@@ -4,7 +4,6 @@ import html2canvas from 'html2canvas';
 export const generateQuotePDF = async (element: HTMLElement, clientName: string, date: string) => {
     try {
         // Temporarily make it visible for html2canvas
-        const originalParent = element.parentElement;
         const clone = element.cloneNode(true) as HTMLElement;
 
         // We append it to body, make it visible but outside the scroll view to avoid flashing

@@ -75,22 +75,19 @@ export const QuoteSummary = ({ services, customServices, totals, resetQuote, onG
 
                 <div className="flex justify-between items-center p-4 rounded-xl bg-brand/10 border border-brand/20 shadow-glow shadow-brand/5">
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-brand uppercase tracking-widest">Total Monthly</span>
-                        <span className="text-2xl font-bold text-text-primary">{formatCurrency(totals.monthlyTotal)}</span>
+                        <span className="text-[10px] font-bold text-brand uppercase tracking-widest">Initial Payable</span>
+                        <span className="text-2xl font-bold text-text-primary">{formatCurrency(totals.initialPayable)}</span>
                     </div>
                     <TrendingUp className="text-brand opacity-60" size={28} />
                 </div>
 
-                {totals.setupFee > 0 && (
-                    <div className="flex justify-between items-center p-2 px-3 rounded-lg border border-status-info/20 text-xs text-status-info bg-status-info/5">
-                        <span>Additional Implementation</span>
-                        <span className="font-bold">{formatCurrency(totals.setupFee)}</span>
-                    </div>
-                )}
+                <div className="flex justify-between items-center p-2 px-3 rounded-lg border border-status-info/20 text-xs text-status-info bg-status-info/5">
+                    <span>Monthly Recurring Total</span>
+                    <span className="font-bold">{formatCurrency(totals.monthlyTotal)}</span>
+                </div>
 
-                <div className="flex justify-between items-center p-3 rounded-lg border border-white/10 bg-white/5 mt-3">
-                    <span className="text-sm font-semibold text-text-primary">One-Time Build Fee</span>
-                    <span className="text-lg font-bold text-text-primary">{formatCurrency(totals.buildFee)}</span>
+                <div className="text-[10px] text-text-muted italic px-1 text-center">
+                    * One-time implementation fees are due upfront. Recurring services bill monthly thereafter.
                 </div>
 
                 <div className="flex gap-2 pt-2">

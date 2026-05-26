@@ -1,0 +1,282 @@
+{
+    "name": "whtsapp_test",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "7611681a-7b24-49c9-8d77-628f80424565",
+            "name": "When clicking \"Execute Workflow\"",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                380,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "contacts",
+                            "value": "=[{\"name\": \"John\", \"phone\": \"919876543210\"}, {\"name\": \"Sarah\", \"phone\": \"919812345678\"}]"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "e43b1234-5678-4321-9abc-def012345678",
+            "name": "Set Contacts",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                600,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "batchSize": 1,
+                "options": {}
+            },
+            "id": "a24b1234-5678-4321-9abc-def012345679",
+            "name": "Split In Batches",
+            "type": "n8n-nodes-base.splitInBatches",
+            "typeVersion": 3,
+            "position": [
+                820,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "https://graph.facebook.com/v19.0/1059669900556917/messages",
+                "authentication": "none",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "=Bearer {{$env.WHATSAPP_ACCESS_TOKEN}}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={\n\"messaging_product\": \"whatsapp\",\n\"to\": \"={{$json.phone}}\",\n\"type\": \"template\",\n\"template\": {\n\"name\": \"enquiry\",\n\"language\": {\n\"code\": \"={{$env.WHATSAPP_TEMPLATE_LANGUAGE}}\"\n}\n}\n}",
+                "options": {
+                    "continueOnFail": true
+                }
+            },
+            "id": "f56b1234-5678-4321-9abc-def012345680",
+            "name": "HTTP Request",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                1040,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "amount": 2,
+                "unit": "seconds"
+            },
+            "id": "d78b1234-5678-4321-9abc-def012345681",
+            "name": "Wait",
+            "type": "n8n-nodes-base.wait",
+            "typeVersion": 1,
+            "position": [
+                1260,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "phone",
+                            "value": "={{$json.phone}}"
+                        },
+                        {
+                            "name": "template",
+                            "value": "enquiry"
+                        },
+                        {
+                            "name": "timestamp",
+                            "value": "={{$now}}"
+                        },
+                        {
+                            "name": "api_response",
+                            "value": "={{$json}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "c90b1234-5678-4321-9abc-def012345682",
+            "name": "Logging Node",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 3.2,
+            "position": [
+                1480,
+                240
+            ]
+        },
+        {
+            "parameters": {
+                "httpMethod": "GET",
+                "path": "whatsapp-status",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "b12c1234-5678-4321-9abc-def012345684",
+            "name": "Status Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1.1,
+            "position": [
+                380,
+                460
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.query['hub.verify_token'] }}",
+                            "value2": "avlokai"
+                        }
+                    ]
+                }
+            },
+            "id": "c12d1234-5678-4321-9abc-def012345685",
+            "name": "Verify Token Check",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                600,
+                460
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "={{ $json.query['hub.challenge'] }}",
+                "options": {}
+            },
+            "id": "d12e1234-5678-4321-9abc-def012345686",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                820,
+                440
+            ]
+        }
+    ],
+    "connections": {
+        "Status Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Verify Token Check",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Verify Token Check": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "When clicking \"Execute Workflow\"": {
+            "main": [
+                [
+                    {
+                        "node": "Set Contacts",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Contacts": {
+            "main": [
+                [
+                    {
+                        "node": "Split In Batches",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Split In Batches": {
+            "main": [
+                [
+                    {
+                        "node": "HTTP Request",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "HTTP Request": {
+            "main": [
+                [
+                    {
+                        "node": "Wait",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Wait": {
+            "main": [
+                [
+                    {
+                        "node": "Logging Node",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Logging Node": {
+            "main": [
+                [
+                    {
+                        "node": "Split In Batches",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "meta": {
+        "templateCredsSetupCompleted": true
+    },
+    "pinData": {},
+    "versionId": "f7812c34-5678-4321-9abc-def012345683"
+}

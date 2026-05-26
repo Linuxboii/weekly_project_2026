@@ -1,18 +1,20 @@
 import React from 'react';
-import type { ServiceItem } from '../../hooks/useQuote';
+import type { ServiceItem, QuoteTotals } from '../../hooks/useQuote';
 import { formatCurrency } from '../../lib/utils';
 
 interface QuotationTemplateProps {
     clientName: string;
+    companyName?: string;
     services: ServiceItem[];
     customServices?: ServiceItem[];
-    totals: any;
+    totals: QuoteTotals;
     date: string;
     validUntil: string;
+    agencyEmail?: string;
 }
 
 export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTemplateProps>(
-    ({ clientName, services, customServices = [], totals, date, validUntil }, ref) => {
+    ({ clientName, companyName = '', services, customServices = [], totals, date, validUntil, agencyEmail = 'avlokaibusiness@gmail.com' }, ref) => {
         const activeServices = services.filter((s) => s.enabled);
         const activeCustomServices = customServices.filter((s) => s.enabled);
         const allServices = [...activeServices, ...activeCustomServices];
@@ -64,7 +66,7 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                 </h3>
                                 <div>
                                     <p className="font-bold text-slate-900">AvlokAI</p>
-                                    <p className="text-sm text-primary font-medium mt-1">avlokaibusiness@gmail.com</p>
+                                    <p className="text-sm text-primary font-medium mt-1">{agencyEmail}</p>
                                 </div>
                             </div>
                             <div className="space-y-4">
@@ -74,6 +76,7 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                 <div className="flex items-start gap-4">
                                     <div>
                                         <p className="font-bold text-slate-900">{clientName || 'Client Name'}</p>
+                                        {companyName && <p className="text-sm text-slate-600 mt-1">{companyName}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -119,7 +122,7 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {allServices.map((s) => {
+                                    {allServices.filter(s => !['management', 'setup', 'build_fee'].includes(s.id)).map((s) => {
                                         let quantityStr = '1';
                                         if (s.id === 'whatsapp' || s.id === 'email_inbox' || s.id === 'openai_tokens' || s.id === 'ai_lead_gen') {
                                             quantityStr = String(s.quantity);
@@ -130,14 +133,6 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                             <tr key={s.id}>
                                                 <td className="py-6 px-2">
                                                     <p className="font-semibold text-slate-900">{s.name}</p>
-                                                    <p className="text-xs text-slate-500 mt-1 italic">
-                                                        {s.id === 'whatsapp' && 'Messages'}
-                                                        {s.id === 'email_inbox' && 'Inboxes'}
-                                                        {s.id === 'openai_tokens' && 'Million Tokens'}
-                                                        {s.id === 'ai_lead_gen' && 'Thousand Leads'}
-                                                        {s.id.startsWith('custom_') && s.type === 'monthly' && 'Monthly'}
-                                                        {s.id.startsWith('custom_') && s.type === 'one-time' && 'One-Time'}
-                                                    </p>
                                                 </td>
                                                 <td className="py-6 px-2 text-center text-sm">{quantityStr}</td>
                                                 <td className="py-6 px-2 text-right text-sm">
@@ -153,13 +148,10 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                         <tr>
                                             <td className="py-6 px-2">
                                                 <p className="font-semibold text-slate-900">Expert Retainer</p>
-                                                <p className="text-xs text-slate-500 mt-1 italic">
-                                                    Monthly maintenance and operations
-                                                </p>
                                             </td>
-                                            <td className="py-6 px-2 text-center text-sm">1</td>
+                                            <td className="py-6 px-2 text-center text-sm">{services.find(s => s.id === 'management')?.quantity || 1}</td>
                                             <td className="py-6 px-2 text-right text-sm">
-                                                {formatCurrency(totals.managementCost).replace('₹', '')}
+                                                {formatCurrency(services.find(s => s.id === 'management')?.unitPrice || 0).replace('₹', '')}
                                             </td>
                                             <td className="py-6 px-2 text-right text-sm font-semibold">
                                                 {formatCurrency(totals.managementCost).replace('₹', '')}
@@ -170,13 +162,10 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                         <tr>
                                             <td className="py-6 px-2">
                                                 <p className="font-semibold text-slate-900">Additional Implementation</p>
-                                                <p className="text-xs text-slate-500 mt-1 italic">
-                                                    Extra configuration and integration fee
-                                                </p>
                                             </td>
-                                            <td className="py-6 px-2 text-center text-sm">1</td>
+                                            <td className="py-6 px-2 text-center text-sm">{services.find(s => s.id === 'setup')?.quantity || 1}</td>
                                             <td className="py-6 px-2 text-right text-sm">
-                                                {formatCurrency(totals.setupFee).replace('₹', '')}
+                                                {formatCurrency(services.find(s => s.id === 'setup')?.unitPrice || 0).replace('₹', '')}
                                             </td>
                                             <td className="py-6 px-2 text-right text-sm font-semibold">
                                                 {formatCurrency(totals.setupFee).replace('₹', '')}
@@ -187,13 +176,10 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                                         <tr>
                                             <td className="py-6 px-2">
                                                 <p className="font-semibold text-slate-900">One-Time Build Fee</p>
-                                                <p className="text-xs text-slate-500 mt-1 italic">
-                                                    Initial system development and provisioning
-                                                </p>
                                             </td>
-                                            <td className="py-6 px-2 text-center text-sm">1</td>
+                                            <td className="py-6 px-2 text-center text-sm">{services.find(s => s.id === 'build_fee')?.quantity || 1}</td>
                                             <td className="py-6 px-2 text-right text-sm">
-                                                {formatCurrency(totals.buildFee).replace('₹', '')}
+                                                {formatCurrency(services.find(s => s.id === 'build_fee')?.unitPrice || 0).replace('₹', '')}
                                             </td>
                                             <td className="py-6 px-2 text-right text-sm font-semibold">
                                                 {formatCurrency(totals.buildFee).replace('₹', '')}
@@ -216,25 +202,28 @@ export const QuotationTemplate = React.forwardRef<HTMLDivElement, QuotationTempl
                             </div>
                             <div className="w-full md:w-80 space-y-4">
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-500">Monthly Services</span>
+                                    <span className="text-slate-500">Monthly Services (Recurring)</span>
                                     <span className="font-semibold text-slate-900">
                                         {formatCurrency(totals.monthlyTotal)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-slate-500">One-Time Fees</span>
+                                    <span className="text-slate-500">One-Time Implementation</span>
                                     <span className="font-semibold text-slate-900">
-                                        {formatCurrency(totals.setupFee + totals.buildFee)}
+                                        {formatCurrency(totals.initialPayable)}
                                     </span>
                                 </div>
                                 <div className="h-px bg-slate-200 my-2"></div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-bold text-slate-900 uppercase tracking-tight">
-                                        Total First Month
+                                        Initial Payable
                                     </span>
                                     <span className="text-2xl font-bold text-primary">
-                                        {formatCurrency(totals.grandTotal)}
+                                        {formatCurrency(totals.initialPayable)}
                                     </span>
+                                </div>
+                                <div className="text-[10px] text-right text-slate-400 italic">
+                                    * Monthly recurring services to commence post-implementation.
                                 </div>
                             </div>
                         </div>

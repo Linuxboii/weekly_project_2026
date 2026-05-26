@@ -110,7 +110,26 @@ export const INITIAL_SERVICES: ServiceItem[] = [
         enabled: false,
         type: 'one-time',
     },
+    {
+        id: 'build_fee',
+        name: 'One-Time Build Fee',
+        description: 'Development, integration & deployment services',
+        unitPrice: 15000,
+        quantity: 1,
+        enabled: false,
+        type: 'one-time',
+    },
 ];
+
+export interface QuoteTotals {
+    infrastructureSubtotal: number;
+    managementCost: number;
+    monthlyTotal: number;
+    setupFee: number;
+    buildFee: number;
+    initialPayable: number;
+    grandTotal: number;
+}
 
 export const useQuote = () => {
     const [services, setServices] = useState<ServiceItem[]>(() => {
@@ -134,17 +153,39 @@ export const useQuote = () => {
                 }
                 return initial;
             });
-        } catch (e) {
-            console.error('Failed to parse quote from localStorage', e);
+        } catch {
+            console.error('Failed to parse quote from localStorage');
             return INITIAL_SERVICES;
         }
     });
 
     const [clientName, setClientName] = useState('New Client');
+    const [companyName, setCompanyName] = useState(() => {
+        try {
+            return localStorage.getItem('automation_company_name') || '';
+        } catch {
+            return '';
+        }
+    });
+    const [agencyEmail, setAgencyEmail] = useState(() => {
+        try {
+            return localStorage.getItem('automation_agency_email') || 'avlokaibusiness@gmail.com';
+        } catch {
+            return 'avlokaibusiness@gmail.com';
+        }
+    });
 
     useEffect(() => {
         localStorage.setItem('automation_quote_v2', JSON.stringify(services));
     }, [services]);
+
+    useEffect(() => {
+        localStorage.setItem('automation_company_name', companyName);
+    }, [companyName]);
+
+    useEffect(() => {
+        localStorage.setItem('automation_agency_email', agencyEmail);
+    }, [agencyEmail]);
 
     const updateService = (id: string, updates: Partial<ServiceItem>) => {
         setServices((prev) =>
@@ -163,8 +204,8 @@ export const useQuote = () => {
             const saved = localStorage.getItem('automation_custom_services_v1');
             if (saved) return JSON.parse(saved);
             return [];
-        } catch (e) {
-            console.error('Failed to parse custom quote services from localStorage', e);
+        } catch {
+            console.error('Failed to parse custom quote services from localStorage');
             return [];
         }
     });
@@ -206,12 +247,14 @@ export const useQuote = () => {
         setServices(INITIAL_SERVICES.map(s => ({ ...s, enabled: false })));
         setCustomServices([]);
         setClientName('New Client');
+        setCompanyName('');
     };
 
     const totals = useMemo(() => {
         const infrastructureItems = services.filter(s => s.type === 'monthly' && s.id !== 'management');
         const managementItem = services.find(s => s.id === 'management');
         const setupItem = services.find(s => s.id === 'setup');
+        const buildFeeItem = services.find(s => s.id === 'build_fee');
         const activeCustomServices = customServices.filter(s => s.enabled);
 
         const infrastructureSubtotal = infrastructureItems.reduce(
@@ -232,7 +275,7 @@ export const useQuote = () => {
         const managementCost = managementItem?.enabled ? managementItem.unitPrice * managementItem.quantity : 0;
         const monthlyTotal = infrastructureSubtotal + managementCost + customMonthlyTotal;
         const setupFee = (setupItem?.enabled ? setupItem.unitPrice * setupItem.quantity : 0) + customOneTimeTotal;
-        const buildFee = 15000;
+        const buildFee = buildFeeItem?.enabled ? buildFeeItem.unitPrice * buildFeeItem.quantity : 0;
 
         return {
             infrastructureSubtotal: infrastructureSubtotal + customMonthlyTotal, // Combined standard + custom infrastructure
@@ -240,6 +283,7 @@ export const useQuote = () => {
             monthlyTotal,
             setupFee,
             buildFee,
+            initialPayable: setupFee + buildFee,
             grandTotal: monthlyTotal + setupFee + buildFee,
         };
     }, [services, customServices]);
@@ -249,6 +293,10 @@ export const useQuote = () => {
         customServices,
         clientName,
         setClientName,
+        companyName,
+        setCompanyName,
+        agencyEmail,
+        setAgencyEmail,
         updateService,
         toggleService,
         addCustomService,

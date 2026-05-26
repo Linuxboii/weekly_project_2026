@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    @apply bg-background-dark text-text-primary font-sans antialiased;
     min-height: 100vh;
     margin: 0;
     padding: 0;
@@ -22,11 +22,29 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full;
+  @apply bg-white/10 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-slate-300;
+  @apply bg-white/20;
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl;
+  }
+
+  .glass-input {
+    @apply bg-white/5 border border-white/10 focus:border-brand/50 focus:bg-white/[0.08] outline-none transition-all;
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 20px -5px rgba(167, 139, 250, 0.3);
+  }
+
+  .shadow-glow-lg {
+    box-shadow: 0 0 30px -2px rgba(167, 139, 250, 0.4);
+  }
 }
 
 @layer utilities {

@@ -39,34 +39,38 @@ export const ServiceSelector = ({
                         key={service.id}
                         className="p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
                     >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex flex-col gap-4">
                             <Checkbox
                                 label={service.name}
                                 description={service.description}
                                 checked={service.enabled}
                                 onChange={() => toggleService(service.id)}
                             />
-                            <div className="flex flex-col items-end gap-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-semibold text-brand">₹</span>
+                            
+                            <div className="flex items-center gap-4 pl-8">
+                                <div className="flex-1">
                                     <Input
                                         type="number"
-                                        value={service.unitPrice}
-                                        onChange={(e) => updateService(service.id, { unitPrice: parseInt(e.target.value) || 0 })}
-                                        className="h-8 w-24 text-right text-xs font-semibold text-brand"
+                                        label="Quantity"
+                                        disabled={!service.enabled}
+                                        value={service.quantity}
+                                        onChange={(e) => updateService(service.id, { quantity: parseInt(e.target.value) || 0 })}
+                                        className="h-8 text-sm"
                                     />
-                                    <span className="text-xs text-text-muted">{service.type === 'monthly' ? '/mo' : ' once'}</span>
                                 </div>
-                                {service.id !== 'management' && service.id !== 'setup' && service.id !== 'platform' && service.id !== 'warmup' && service.id !== 'server' && (
-                                    <div className="w-20">
+                                <div className="flex-1">
+                                    <div className="relative">
                                         <Input
                                             type="number"
-                                            value={service.quantity}
-                                            onChange={(e) => updateService(service.id, { quantity: parseInt(e.target.value) || 0 })}
-                                            className="h-8 text-center"
+                                            label={`Price (₹${service.type === 'monthly' ? '/mo' : ''})`}
+                                            disabled={!service.enabled}
+                                            value={service.unitPrice}
+                                            onChange={(e) => updateService(service.id, { unitPrice: parseInt(e.target.value) || 0 })}
+                                            className="h-8 text-sm pl-6"
                                         />
+                                        <span className="absolute left-2 bottom-2 text-xs font-semibold text-brand">₹</span>
                                     </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -82,12 +86,12 @@ export const ServiceSelector = ({
                             >
                                 <button
                                     onClick={() => removeCustomService(service.id)}
-                                    className="absolute -top-2 -right-2 p-1.5 bg-status-error text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute -top-2 -right-2 p-1.5 bg-status-error text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                 >
                                     <Trash2 size={12} />
                                 </button>
 
-                                <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-2">
                                         <Checkbox
                                             label=""
@@ -102,23 +106,29 @@ export const ServiceSelector = ({
                                         />
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-2 pl-8">
-                                        <div className="w-24">
+                                    <div className="flex items-center gap-4 pl-8">
+                                        <div className="flex-1">
                                             <Input
                                                 type="number"
+                                                label="Quantity"
+                                                disabled={!service.enabled}
                                                 value={service.quantity}
                                                 onChange={(e) => updateCustomService(service.id, { quantity: parseInt(e.target.value) || 0 })}
-                                                className="h-8 text-center"
+                                                className="h-8 text-sm"
                                             />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xs font-semibold text-brand">₹</span>
-                                            <Input
-                                                type="number"
-                                                value={service.unitPrice}
-                                                onChange={(e) => updateCustomService(service.id, { unitPrice: parseInt(e.target.value) || 0 })}
-                                                className="h-8 w-24 text-right text-xs font-semibold text-brand"
-                                            />
+                                        <div className="flex-1">
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    label="Price (₹)"
+                                                    disabled={!service.enabled}
+                                                    value={service.unitPrice}
+                                                    onChange={(e) => updateCustomService(service.id, { unitPrice: parseInt(e.target.value) || 0 })}
+                                                    className="h-8 text-sm pl-6"
+                                                />
+                                                <span className="absolute left-2 bottom-2 text-xs font-semibold text-brand">₹</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
